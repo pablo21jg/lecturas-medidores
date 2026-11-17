@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#12355b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Lecturas de medidores</title>
+<style>
+  :root{
+    --azul:#12355b; --azul2:#1d4f86; --agua:#2f80c8; --gas:#d98a00;
+    --ok:#1e8a4c; --warn:#b26a00; --err:#c0392b;
+    --bg:#f3f6fa; --card:#fff; --txt:#1b2430; --sub:#5d6b7a; --line:#dde3ea;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  button,input,select,textarea{font:inherit}
+  header{position:sticky;top:0;z-index:5;background:var(--azul);color:#fff;padding:12px 16px calc(10px) ;padding-top:calc(12px + env(safe-area-inset-top))}
+  header h1{margin:0;font-size:18px;font-weight:700}
+  header .sub{font-size:13px;opacity:.8;margin-top:2px}
+  main{padding:12px 12px 110px;max-width:680px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+  .card h2{margin:0 0 8px;font-size:17px}
+  .muted{color:var(--sub);font-size:14px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border:0;border-radius:12px;background:var(--azul2);color:#fff;font-weight:650;font-size:16px;padding:10px 16px;cursor:pointer}
+  .btn.sec{background:#e7edf4;color:var(--azul)}
+  .btn.ok{background:var(--ok)}
+  .btn.danger{background:#fbe9e7;color:var(--err)}
+  .btn:disabled{opacity:.45}
+  .row{display:flex;gap:8px}
+  .row>*{flex:1}
+  label.f{display:block;font-size:14px;color:var(--sub);margin:10px 0 4px}
+  input.t,textarea.t{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px;background:#fff;font-size:16px}
+  input.t:focus,textarea.t:focus{outline:none;border-color:var(--azul2)}
+  .chk{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:15px}
+  .chk input{width:22px;height:22px;margin-top:1px;flex:none}
+  .tabs{display:flex;gap:8px;margin-bottom:10px}
+  .tab{flex:1;border:2px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:center;font-weight:700;cursor:pointer}
+  .tab small{display:block;font-weight:500;color:var(--sub);font-size:13px}
+  .tab.on.agua{border-color:var(--agua);background:#eaf3fc}
+  .tab.on.gas{border-color:var(--gas);background:#fdf3e1}
+  .bar{height:6px;border-radius:3px;background:#e3e8ee;overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;background:var(--ok)}
+  .search{position:relative;margin-bottom:8px}
+  .search input{padding-left:40px}
+  .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.5}
+  .chips{display:flex;gap:6px;margin-bottom:10px}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:20px;padding:6px 12px;font-size:14px;cursor:pointer}
+  .chip.on{background:var(--azul);color:#fff;border-color:var(--azul)}
+  .m{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer}
+  .m .loc{font-weight:800;font-size:17px;min-width:64px}
+  .m .info{flex:1;min-width:0}
+  .m .com{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .m .det{font-size:13px;color:var(--sub)}
+  .m .st{text-align:right;font-size:13px;color:var(--sub);white-space:nowrap}
+  .m .st b{display:block;font-size:17px;color:var(--ok)}
+  .m.done{border-left:5px solid var(--ok)}
+  .m.flag{border-left:5px solid var(--warn)}
+  .empty{text-align:center;color:var(--sub);padding:30px 10px}
+  footer{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));z-index:5}
+  footer .in{max-width:680px;margin:0 auto}
+  /* Hoja de lectura */
+  .sheet{position:fixed;inset:0;background:var(--bg);z-index:20;overflow:auto;display:none}
+  .sheet.open{display:block}
+  .sheet .top{position:sticky;top:0;background:var(--azul);color:#fff;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));display:flex;align-items:center;gap:12px;z-index:2}
+  .sheet .top button{background:none;border:0;color:#fff;font-size:26px;line-height:1;padding:0 6px;cursor:pointer}
+  .sheet .body{padding:12px;max-width:680px;margin:0 auto 40px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:15px}
+  .kv span{color:var(--sub)}
+  .big{font-size:34px;font-weight:800;letter-spacing:1px;text-align:center;padding:14px}
+  .prev{display:flex;justify-content:space-between;background:#eef2f7;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:15px}
+  .prev b{font-size:18px}
+  .photo{width:100%;border-radius:12px;display:block;margin-top:10px}
+  .msg{border-radius:10px;padding:10px 12px;margin-top:10px;font-size:15px;display:none}
+  .msg.show{display:block}
+  .msg.warn{background:#fff4e0;color:#7a4a00}
+  .msg.err{background:#fdecea;color:#8e2418}
+  .msg.ok{background:#e8f6ee;color:#14603a}
+  .gps{font-size:13px;color:var(--sub);margin-top:6px}
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(10,20,35,.55);display:none;align-items:flex-end;justify-content:center;z-index:50}
+  .modal.open{display:flex}
+  .modal .box{background:#fff;border-radius:16px 16px 0 0;padding:20px 16px calc(16px + env(safe-area-inset-bottom));width:100%;max-width:680px}
+  .modal p{margin:0 0 16px;font-size:16px;white-space:pre-line}
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#1b2430;color:#fff;padding:10px 16px;border-radius:10px;font-size:15px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%}
+  .toast.show{opacity:1}
+  .stat{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+  .stat:last-child{border:0}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>Lecturas de medidores</h1>
+  <div class="sub" id="hdrSub">Agua y gas por local</div>
+</header>
+<main id="main"></main>
+<footer id="foot" class="hidden"><div class="in row">
+  <button class="btn" id="btnExport">Terminar, exportar y más opciones</button>
+</div></footer>
+
+<!-- Hoja para tomar una lectura -->
+<div class="sheet" id="sheet">
+  <div class="top"><button id="shClose" aria-label="Cerrar">‹</button><div><div id="shTitle" style="font-weight:700"></div><div id="shSub" style="font-size:13px;opacity:.8"></div></div></div>
+  <div class="body">
+    <div class="card">
+      <div class="kv" id="shInfo"></div>
+      <div class="prev" id="shPrev"></div>
+    </div>
+    <div class="card">
+      <h2>1. Foto del medidor</h2>
+      <input type="file" id="cam" accept="image/*" capture="environment" class="hidden">
+      <button class="btn" id="btnCam">📷 Tomar foto</button>
+      <img id="shPhoto" class="photo hidden" alt="Foto del medidor">
+      <div class="gps" id="shGps"></div>
+    </div>
+    <div class="card">
+      <h2>2. Lectura</h2>
+      <div class="muted" id="shHint"></div>
+      <input class="t big" id="val" inputmode="decimal" autocomplete="off" placeholder="0">
+      <div class="msg" id="shMsg"></div>
+      <label class="f" for="note">Nota (opcional): local cerrado, medidor tapado…</label>
+      <input class="t" id="note" autocomplete="off">
+    </div>
+    <button class="btn ok" id="btnSave">Guardar lectura</button>
+    <div style="height:10px"></div>
+    <button class="btn danger hidden" id="btnDel">Borrar esta lectura</button>
+  </div>
+</div>
+
+<div class="modal" id="modal"><div class="box"><p id="mText"></p><div class="row"><button class="btn sec" id="mNo">Cancelar</button><button class="btn" id="mYes">Aceptar</button></div></div></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="fileXlsx" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
+<input type="file" id="filePkg" accept=".zip,application/zip" class="hidden">
+
+<script src="jszip.min.js"></script>
+<script>
+'use strict';
+const APP_VERSION = '0.1 (prueba)';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
+const fmt = n => (n === null || n === undefined || n === '') ? '—' : String(Number(Number(n).toFixed(3)));
+const TIPOS = { agua: { nombre: 'Agua', etiqueta: 'AGUA', unidad: 'm³' }, gas: { nombre: 'Gas', etiqueta: 'GAS', unidad: 'm³' } };
+
+/* ---------- Base de datos en el teléfono (IndexedDB) ---------- */
+const DB = {
+  db: null,
+  open() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('lecturas-medidores', 1);
+      r.onupgradeneeded = () => { const d = r.result; ['kv', 'readings', 'photos'].forEach(n => d.createObjectStore(n)); };
+      r.onsuccess = () => { this.db = r.result; res(); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  run(store, mode, fn) {
+    return new Promise((res, rej) => {
+      const t = this.db.transaction(store, mode); const s = t.objectStore(store);
+      let out; const q = fn(s); if (q) q.onsuccess = () => { out = q.result; };
+      t.oncomplete = () => res(out); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+    });
+  },
+  get(st, k) { return this.run(st, 'readonly', s => s.get(k)); },
+  put(st, k, v) { return this.run(st, 'readwrite', s => s.put(v, k)); },
+  del(st, k) { return this.run(st, 'readwrite', s => s.delete(k)); },
+  clear(st) { return this.run(st, 'readwrite', s => s.clear()); },
+  entries(st) {
+    return new Promise((res, rej) => {
+      const out = {}; const t = this.db.transaction(st, 'readonly');
+      t.objectStore(st).openCursor().onsuccess = e => { const c = e.target.result; if (c) { out[c.key] = c.value; c.continue(); } };
+      t.oncomplete = () => res(out); t.onerror = () => rej(t.error);
+    });
+  }
+};
+
+/* ---------- Estado ---------- */
+const S = { meta: null, readings: {}, tab: 'agua', filter: 'pend', q: '', reader: '', current: null, shot: null, gps: null };
+
+/* ---------- Utilidades de interfaz ---------- */
+function toast(t, ms = 2200) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), ms); }
+function ask(text, yes = 'Aceptar', no = 'Cancelar') {
+  return new Promise(res => {
+    $('#mText').textContent = text; $('#mYes').textContent = yes; $('#mNo').textContent = no;
+    $('#mNo').classList.toggle('hidden', no === null);
+    $('#modal').classList.add('open');
+    const done = v => { $('#modal').classList.remove('open'); $('#mYes').onclick = $('#mNo').onclick = null; res(v); };
+    $('#mYes').onclick = () => done(true); $('#mNo').onclick = () => done(false);
+  });
+}
+function download(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+async function shareOrDownload(blob, name) {
+  try {
+    const file = new File([blob], name, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  download(blob, name);
+}
+const pad = n => String(n).padStart(2, '0');
+const isoDay = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const fechaLarga = d => d.toLocaleDateString('es-GT', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '') + ' ' +
+  d.toLocaleTimeString('es-GT', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+const safeName = s => norm(s).replace(/[^A-Z0-9-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'SN';
+
+/* ---------- Lectura del Excel tal cual ---------- */
+const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+const colNum = c => c.split('').reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0);
+const splitRef = r => { const m = /^([A-Z]+)(\d+)$/.exec(r); return [m[1], +m[2]]; };
+
+async function openXlsx(buf) {
+  const zip = await JSZip.loadAsync(buf);
+  const xml = async p => new DOMParser().parseFromString(await zip.file(p).async('string'), 'application/xml');
+  const wb = await xml('xl/workbook.xml');
+  const rels = await xml('xl/_rels/workbook.xml.rels');
+  const relMap = {};
+  for (const r of rels.getElementsByTagName('Relationship')) {
+    let t = r.getAttribute('Target'); t = t.startsWith('/') ? t.slice(1) : 'xl/' + t; relMap[r.getAttribute('Id')] = t;
+  }
+  const ss = [];
+  if (zip.file('xl/sharedStrings.xml')) {
+    const d = await xml('xl/sharedStrings.xml');
+    for (const si of d.getElementsByTagName('si'))
+      ss.push([...si.getElementsByTagName('t')].filter(t => t.parentNode.localName !== 'rPh').map(t => t.textContent).join(''));
+  }
+  const sheets = [...wb.getElementsByTagName('sheet')].map(s => ({
+    name: s.getAttribute('name'), state: s.getAttribute('state') || 'visible',
+    path: relMap[s.getAttribute('r:id')]
+  }));
+  return { zip, xml, ss, sheets };
+}
+
+function cellValue(c, ss) {
+  const t = c.getAttribute('t'); const v = c.getElementsByTagName('v')[0];
+  if (t === 's') return v ? ss[+v.textContent] : null;
+  if (t === 'inlineStr') { const is = c.getElementsByTagName('is')[0]; return is ? is.textContent : null; }
+  if (!v) return null;
+  if (t === 'str' || t === 'e') return v.textContent;
+  if (t === 'b') return v.textContent === '1';
+  const n = Number(v.textContent); return isNaN(n) ? v.textContent : n;
+}
+
+function readGrid(doc, ss) {
+  const rows = [];
+  for (const r of doc.getElementsByTagName('row')) {
+    const cells = {};
+    for (const c of r.getElementsByTagName('c')) {
+      const [col] = splitRef(c.getAttribute('r'));
+      cells[col] = { v: cellValue(c, ss), f: c.getElementsByTagName('f').length > 0 };
+    }
+    rows.push({ n: +r.getAttribute('r'), hidden: r.getAttribute('hidden') === '1', cells });
+  }
+  return rows;
+}
+
+function detectSheet(rows) {
+  let hdr = null, dateRef = null;
+  for (const row of rows) {
+    for (const [col, c] of Object.entries(row.cells)) {
+      const t = norm(c.v);
+      if (t.startsWith('FECHA TOMA DE LECTURA')) {
+        const next = Object.entries(row.cells).filter(([k, x]) => colNum(k) > colNum(col) && typeof x.v === 'number').sort((a, b) => colNum(a[0]) - colNum(b[0]))[0];
+        const blank = Object.keys(row.cells).filter(k => colNum(k) > colNum(col)).sort((a, b) => colNum(a) - colNum(b))[0];
+        dateRef = (next ? next[0] : blank) ? (next ? next[0] : blank) + row.n : null;
+      }
+      if (t === 'NUMERO DE LOCAL') hdr = row;
+    }
+    if (hdr) break;
+  }
+  if (!hdr) return null;
+  const cols = {};
+  for (const [col, c] of Object.entries(hdr.cells)) {
+    const t = norm(c.v);
+    if (t === 'NUMERO DE LOCAL') cols.local = col;
+    else if (t.startsWith('RAZON SOCIAL')) cols.razon = col;
+    else if (t === 'COMERCIO') cols.comercio = col;
+    else if (t === 'NUMERO DE CONTADOR' || t === 'CONTADOR ACTUAL') cols.contador = col;
+    else if (t.startsWith('LECTURA ANTERIOR')) cols.anterior = col;
+    else if (t.startsWith('LECTURA ACTUAL')) cols.actual = col;
+  }
+  if (!cols.anterior || !cols.actual) return null;
+  return { headerRow: hdr.n, cols, dateRef };
+}
+
+async function parseReport(buf) {
+  const X = await openXlsx(buf);
+  const out = { sheets: [] };
+  for (const sh of X.sheets) {
+    if (sh.state !== 'visible' || !sh.path) continue;
+    const n = norm(sh.name);
+    const tipo = n.includes('AGUA') ? 'agua' : n.includes('GAS') ? 'gas' : null;
+    if (!tipo || out.sheets.some(s => s.tipo === tipo)) continue;
+    const doc = await X.xml(sh.path);
+    const rows = readGrid(doc, X.ss);
+    const det = detectSheet(rows);
+    if (!det) continue;
+    const { cols } = det; const meters = [];
+    for (const row of rows) {
+      if (row.n <= det.headerRow) continue;
+      if (Object.values(row.cells).some(c => /^TOTAL(ES)?$/.test(norm(c.v)))) break;
+      if (row.hidden) continue;
+      const g = k => cols[k] && row.cells[cols[k]] ? row.cells[cols[k]].v : null;
+      const m = {
+        id: tipo + ':' + row.n, tipo, row: row.n,
+        local: g('local'), razon: g('razon'), comercio: g('comercio'), contador: g('contador'),
+        anterior: typeof g('anterior') === 'number' ? g('anterior') : null,
+        actual: typeof g('actual') === 'number' ? g('actual') : null
+      };
+      const hasData = m.razon || m.comercio || m.contador != null || m.anterior != null || m.actual != null;
+      const looksLikeTitle = m.local != null && String(m.local).length > 14 && !hasData;
+      if (!hasData && (m.local == null || looksLikeTitle)) continue;
+      meters.push(m);
+    }
+    out.sheets.push({ tipo, name: sh.name, path: sh.path, cols, dateRef: det.dateRef, meters });
+  }
+  return out;
+}
+
+/* ---------- Escribir el Excel (solo las celdas de lectura) ---------- */
+function setCell(doc, ref, value) {
+  const [col, rn] = splitRef(ref);
+  const sheetData = doc.getElementsByTagNameNS(NS, 'sheetData')[0];
+  let row = [...sheetData.getElementsByTagNameNS(NS, 'row')].find(r => +r.getAttribute('r') === rn);
+  if (!row) {
+    row = doc.createElementNS(NS, 'row'); row.setAttribute('r', rn);
+    const after = [...sheetData.getElementsByTagNameNS(NS, 'row')].find(r => +r.getAttribute('r') > rn);
+    sheetData.insertBefore(row, after || null);
+  }
+  let c = [...row.getElementsByTagNameNS(NS, 'c')].find(x => x.getAttribute('r') === ref);
+  if (!c) {
+    c = doc.createElementNS(NS, 'c'); c.setAttribute('r', ref);
+    const after = [...row.getElementsByTagNameNS(NS, 'c')].find(x => colNum(splitRef(x.getAttribute('r'))[0]) > colNum(col));
+    row.insertBefore(c, after || null);
+  }
+  if (c.getElementsByTagNameNS(NS, 'f').length) return; // nunca se pisan fórmulas
+  c.removeAttribute('t');
+  [...c.childNodes].forEach(ch => c.removeChild(ch));
+  if (value !== null && value !== undefined && value !== '') {
+    const v = doc.createElementNS(NS, 'v'); v.textContent = String(value); c.appendChild(v);
+  }
+}
+const excelSerial = d => Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(1899, 11, 30)) / 86400000);
+const serialize = doc => { let s = new XMLSerializer().serializeToString(doc); if (!s.startsWith('<?xml')) s = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + s; return s; };
+
+async function buildExcel(dateObj) {
+  const buf = await DB.get('kv', 'file');
+  const X = await openXlsx(buf);
+  const roll = S.meta.rollForward;
+  for (const sh of S.meta.sheets) {
+    const doc = await X.xml(sh.path);
+    for (const m of sh.meters) {
+      const r = S.readings[m.id];
+      if (roll) {
+        setCell(doc, sh.cols.anterior + m.row, m.actual ?? m.anterior);
+        setCell(doc, sh.cols.actual + m.row, r ? r.value : null);
+      } else if (r) {
+        setCell(doc, sh.cols.actual + m.row, r.value);
+      }
+    }
+    if (sh.dateRef) setCell(doc, sh.dateRef, excelSerial(dateObj));
+    X.zip.file(sh.path, serialize(doc));
+  }
+  // Que Excel recalcule todas las fórmulas al abrir
+  const wb = await X.xml('xl/workbook.xml');
+  let calc = wb.getElementsByTagNameNS(NS, 'calcPr')[0];
+  if (!calc) { calc = wb.createElementNS(NS, 'calcPr'); wb.documentElement.appendChild(calc); }
+  calc.setAttribute('fullCalcOnLoad', '1');
+  X.zip.file('xl/workbook.xml', serialize(wb));
+  return X.zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression: 'DEFLATE' });
+}
+
+/* ---------- Validación de lecturas ---------- */
+function baseOf(m) { return S.meta.rollForward ? (m.actual ?? m.anterior) : m.anterior; }
+function lastConsumption(m) { return (S.meta.rollForward && m.actual != null && m.anterior != null) ? m.actual - m.anterior : null; }
+function checkValue(m, v) {
+  if (v === null || isNaN(v)) return null;
+  const base = baseOf(m); const prev = lastConsumption(m);
+  if (base != null && v < base) return { lvl: 'err', t: `Es menor que la lectura anterior (${fmt(base)}). Revisa el número o si cambiaron el medidor.` };
+  if (base != null && prev != null) {
+    const c = v - base;
+    if (prev > 0 && c > prev * 3 && c - prev > 5) return { lvl: 'warn', t: `Consumo inusual: ${fmt(c)} ${TIPOS[m.tipo].unidad} (el mes pasado fue ${fmt(prev)}). Confirma la lectura.` };
+    if (prev >= 5 && c === 0) return { lvl: 'warn', t: `Consumo cero (el mes pasado fue ${fmt(prev)}). ¿Local cerrado?` };
+    return { lvl: 'ok', t: `Consumo: ${fmt(c)} ${TIPOS[m.tipo].unidad}` + (prev != null ? ` · mes pasado: ${fmt(prev)}` : '') };
+  }
+  if (base != null) return { lvl: 'ok', t: `Consumo: ${fmt(v - base)} ${TIPOS[m.tipo].unidad}` };
+  return null;
+}
+function parseNum(s) { s = String(s || '').trim().replace(/\s/g, '').replace(',', '.'); if (!s) return null; const n = Number(s); return isNaN(n) ? NaN : n; }
+
+/* ---------- GPS ---------- */
+function refreshGps() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    p => { S.gps = { lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy), t: Date.now() }; updGpsLabel(); },
+    () => updGpsLabel(), { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 });
+}
+function gpsFresh() { return S.gps && Date.now() - S.gps.t < 10 * 60 * 1000 ? S.gps : null; }
+function updGpsLabel() {
+  const g = gpsFresh(); const el = $('#shGps'); if (!el) return;
+  el.textContent = g ? `📍 Ubicación: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)} (±${g.acc} m)` : '📍 Sin ubicación (normal en sótanos; la foto igual lleva fecha y hora)';
+}
+
+/* ---------- Foto con sello de fecha, hora y datos ---------- */
+function loadImg(url) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; }); }
+async function stampPhoto(file, lines) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImg(url);
+    let w = img.naturalWidth, h = img.naturalHeight; const k = Math.min(1, 1600 / Math.max(w, h));
+    w = Math.round(w * k); h = Math.round(h * k);
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const g = cv.getContext('2d'); g.drawImage(img, 0, 0, w, h);
+    const fs = Math.max(14, Math.round(Math.min(w, h) / 24)); const lh = fs * 1.28;
+    const boxH = lines.length * lh + fs * 0.9;
+    const grd = g.createLinearGradient(0, h - boxH - fs * 2, 0, h);
+    grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(.35, 'rgba(0,0,0,.45)'); grd.addColorStop(1, 'rgba(0,0,0,.65)');
+    g.fillStyle = grd; g.fillRect(0, h - boxH - fs * 2, w, boxH + fs * 2);
+    g.textAlign = 'right'; g.fillStyle = '#fff'; g.shadowColor = 'rgba(0,0,0,.85)'; g.shadowBlur = fs / 4;
+    lines.forEach((t, i) => {
+      let size = i === 0 ? fs * 1.1 : fs;
+      g.font = `600 ${size}px system-ui, Roboto, sans-serif`;
+      while (g.measureText(t).width > w * 0.94 && size > 10) { size -= 1; g.font = `600 ${size}px system-ui, Roboto, sans-serif`; }
+      g.fillText(t, w - fs * 0.6, h - boxH + fs * 0.35 + lh * (i + 1) - fs * 0.2);
+    });
+    return await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.82));
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/* ---------- Pantallas ---------- */
+function allMeters() { return S.meta ? S.meta.sheets.flatMap(s => s.meters) : []; }
+function sheetOf(tipo) { return S.meta.sheets.find(s => s.tipo === tipo); }
+function progress(tipo) { const ms = sheetOf(tipo)?.meters || []; return [ms.filter(m => S.readings[m.id]).length, ms.length]; }
+
+function renderSetup() {
+  $('#foot').classList.add('hidden');
+  $('#hdrSub').textContent = 'Agua y gas por local · v' + APP_VERSION;
+  $('#main').innerHTML = `
+    <div class="card">
+      <h2>1. ¿Quién va a tomar las lecturas?</h2>
+      <input class="t" id="inName" placeholder="Tu nombre" value="${esc(S.reader)}" autocomplete="name">
+      <div class="muted" style="margin-top:6px">Aparece en cada foto.</div>
+    </div>
+    <div class="card">
+      <h2>2. Cargar el reporte de Excel</h2>
+      <div class="muted">El mismo archivo de la empresa, sin cambiarle nada. La app solo escribe las lecturas en sus celdas.</div>
+      <label class="chk"><input type="checkbox" id="inRoll" checked>
+        <span>Es el reporte <b>del mes pasado</b>. Su "lectura actual" pasa a ser la "lectura anterior" de este mes.</span></label>
+      <div style="height:12px"></div>
+      <button class="btn" id="btnLoad">📄 Elegir archivo Excel</button>
+    </div>
+    <div class="card">
+      <h2>¿Te mandaron lecturas de otro teléfono?</h2>
+      <div class="muted">Primero carga el mismo Excel; luego, desde el menú, importa el paquete .zip que te enviaron.</div>
+    </div>`;
+  $('#btnLoad').onclick = () => {
+    S.reader = $('#inName').value.trim();
+    if (!S.reader) { toast('Escribe tu nombre primero'); $('#inName').focus(); return; }
+    DB.put('kv', 'reader', S.reader);
+    $('#fileXlsx').click();
+  };
+}
+
+function renderList() {
+  $('#foot').classList.remove('hidden');
+  const [aD, aT] = progress('agua'); const [gD, gT] = progress('gas');
+  $('#hdrSub').textContent = `${S.meta.fileName} · ${S.reader}`;
+  const tabs = S.meta.sheets.map(s => {
+    const [d, t] = progress(s.tipo);
+    return `<div class="tab ${s.tipo} ${S.tab === s.tipo ? 'on' : ''}" data-tab="${s.tipo}">${TIPOS[s.tipo].nombre}<small>${d} de ${t}</small><div class="bar"><i style="width:${t ? d / t * 100 : 0}%"></i></div></div>`;
+  }).join('');
+  $('#main').innerHTML = `
+    <div class="tabs">${tabs}</div>
+    <div class="search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="t" id="q" placeholder="Buscar local, comercio o contador" value="${esc(S.q)}" autocomplete="off" inputmode="search"></div>
+    <div class="chips">
+      <div class="chip ${S.filter === 'pend' ? 'on' : ''}" data-f="pend">Pendientes</div>
+      <div class="chip ${S.filter === 'done' ? 'on' : ''}" data-f="done">Hechos</div>
+      <div class="chip ${S.filter === 'all' ? 'on' : ''}" data-f="all">Todos</div>
+    </div>
+    <div id="list"></div>`;
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => { S.tab = t.dataset.tab; renderList(); });
+  document.querySelectorAll('.chip').forEach(c => c.onclick = () => { S.filter = c.dataset.f; renderList(); });
+  $('#q').oninput = e => { S.q = e.target.value; renderItems(); };
+  renderItems();
+}
+
+function renderItems() {
+  const sh = sheetOf(S.tab); if (!sh) { $('#list').innerHTML = ''; return; }
+  const q = norm(S.q);
+  const items = sh.meters.filter(m => {
+    const r = S.readings[m.id];
+    if (S.filter === 'pend' && r) return false;
+    if (S.filter === 'done' && !r) return false;
+    if (!q) return true;
+    return [m.local, m.comercio, m.razon, m.contador].some(x => norm(x).includes(q));
+  });
+  if (!items.length) {
+    $('#list').innerHTML = `<div class="empty">${S.filter === 'pend' && !q ? '✅ ¡No quedan medidores pendientes de ' + TIPOS[S.tab].nombre.toLowerCase() + '!' : 'No hay resultados.'}</div>`;
+    return;
+  }
+  $('#list').innerHTML = items.map(m => {
+    const r = S.readings[m.id]; const chk = r ? checkValue(m, r.value) : null;
+    const flag = r && (!r.photo || (chk && chk.lvl !== 'ok'));
+    return `<div class="m ${r ? (flag ? 'flag' : 'done') : ''}" data-id="${m.id}">
+      <div class="loc">${esc(m.local ?? '—')}</div>
+      <div class="info"><div class="com">${esc(m.comercio || m.razon || 'Sin comercio')}</div>
+        <div class="det">${m.contador != null ? 'Contador ' + esc(m.contador) : 'Sin n.º de contador'} · ant. ${fmt(baseOf(m))}</div></div>
+      <div class="st">${r ? `<b>${fmt(r.value)}</b>${r.photo ? '📷' : 'sin foto'}${flag ? ' ⚠️' : ''}` : 'Pendiente'}</div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('.m').forEach(el => el.onclick = () => openMeter(el.dataset.id));
+}
+
+/* ---------- Tomar lectura ---------- */
+async function openMeter(id) {
+  const m = allMeters().find(x => x.id === id); if (!m) return;
+  S.current = m; S.shot = null;
+  const r = S.readings[id];
+  $('#shTitle').textContent = `${TIPOS[m.tipo].nombre} · Local ${m.local ?? '—'}`;
+  $('#shSub').textContent = m.comercio || m.razon || '';
+  $('#shInfo').innerHTML = `<span>Comercio</span><b>${esc(m.comercio || '—')}</b><span>Razón social</span><div>${esc(m.razon || '—')}</div><span>Contador</span><b>${esc(m.contador ?? '—')}</b><span>Fila Excel</span><div>${m.row}</div>`;
+  const prev = lastConsumption(m);
+  $('#shPrev').innerHTML = `<div>Lectura anterior<br><b>${fmt(baseOf(m))}</b></div><div style="text-align:right">Consumo mes pasado<br><b>${prev != null ? fmt(prev) + ' ' + TIPOS[m.tipo].unidad : '—'}</b></div>`;
+  $('#shHint').textContent = m.tipo === 'agua' ? 'Solo los números del contador (m³ enteros). Las agujas rojas no se anotan.' : 'Escribe el número del contador tal como se anota en el reporte (puede llevar decimales).';
+  $('#val').value = r ? r.value : ''; $('#note').value = r ? (r.note || '') : '';
+  const img = $('#shPhoto');
+  if (r && r.photo) { const b = await DB.get('photos', id); if (b) { img.src = URL.createObjectURL(b); img.classList.remove('hidden'); } }
+  else { img.classList.add('hidden'); img.removeAttribute('src'); }
+  $('#btnCam').textContent = r && r.photo ? '📷 Repetir foto' : '📷 Tomar foto';
+  $('#btnDel').classList.toggle('hidden', !r);
+  showCheck();
+  $('#sheet').classList.add('open'); $('#sheet').scrollTop = 0;
+  updGpsLabel(); refreshGps();
+}
+function closeSheet() { $('#sheet').classList.remove('open'); S.current = null; S.shot = null; renderList(); }
+function showCheck() {
+  const m = S.current; const v = parseNum($('#val').value); const el = $('#shMsg');
+  if (isNaN(v)) { el.className = 'msg show err'; el.textContent = 'Solo números (usa punto para decimales).'; return; }
+  const c = checkValue(m, v);
+  el.className = c ? `msg show ${c.lvl}` : 'msg'; el.textContent = c ? c.t : '';
+}
+$('#val').addEventListener('input', showCheck);
+$('#shClose').onclick = closeSheet;
+$('#btnCam').onclick = () => { $('#cam').value = ''; $('#cam').click(); };
+$('#cam').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  S.shot = { file: f, at: new Date(), gps: gpsFresh() };
+  const img = $('#shPhoto'); img.src = URL.createObjectURL(f); img.classList.remove('hidden');
+  $('#btnCam').textContent = '📷 Repetir foto';
+  setTimeout(() => $('#val').focus(), 300);
+};
+$('#btnSave').onclick = async () => {
+  const m = S.current; const v = parseNum($('#val').value); const note = $('#note').value.trim();
+  const old = S.readings[m.id];
+  if (v === null) { toast('Escribe la lectura'); $('#val').focus(); return; }
+  if (isNaN(v)) { toast('La lectura debe ser un número'); return; }
+  const hasPhoto = !!S.shot || !!(old && old.photo);
+  if (!hasPhoto && !note) { toast('Toma la foto, o escribe una nota de por qué no hay foto'); return; }
+  const c = checkValue(m, v);
+  if (c && c.lvl !== 'ok' && !(await ask(c.t + '\n\n¿Guardar de todas formas?', 'Sí, guardar', 'Revisar'))) return;
+  $('#btnSave').disabled = true;
+  try {
+    const rec = { value: v, note, reader: S.reader, t: Date.now(), photo: hasPhoto,
+      takenAt: old ? old.takenAt : null, gps: old ? old.gps : null };
+    if (S.shot) {
+      const g = S.shot.gps;
+      const lines = [
+        fechaLarga(S.shot.at),
+        `${TIPOS[m.tipo].etiqueta} · Local ${m.local ?? '—'} · ${m.comercio || m.razon || ''}`,
+        `Contador ${m.contador ?? '—'} · Lectura ${fmt(v)}`,
+        g ? `${g.lat.toFixed(5)}, ${g.lng.toFixed(5)} (±${g.acc} m)` : 'Ubicación no disponible',
+        `Tomada por: ${S.reader}`
+      ];
+      const blob = await stampPhoto(S.shot.file, lines);
+      await DB.put('photos', m.id, blob);
+      rec.takenAt = S.shot.at.getTime(); rec.gps = g;
+    }
+    await DB.put('readings', m.id, rec); S.readings[m.id] = rec;
+    toast(`Guardado: local ${m.local ?? ''} → ${fmt(v)}`);
+    closeSheet();
+  } catch (err) { console.error(err); toast('No se pudo guardar: ' + err.message, 4000); }
+  finally { $('#btnSave').disabled = false; }
+};
+$('#btnDel').onclick = async () => {
+  const m = S.current;
+  if (!(await ask(`¿Borrar la lectura y la foto del local ${m.local}?`, 'Borrar'))) return;
+  await DB.del('readings', m.id); await DB.del('photos', m.id); delete S.readings[m.id];
+  toast('Lectura borrada'); closeSheet();
+};
+
+/* ---------- Exportar ---------- */
+function photoName(m, date, used) {
+  let base = `${isoDay(date)}_${TIPOS[m.tipo].etiqueta}_${safeName(m.local)}_${safeName(m.comercio || m.razon || 'SIN_COMERCIO')}`;
+  let n = base, i = 2; while (used.has(n)) n = `${base}-${i++}`; used.add(n); return n + '.jpg';
+}
+function renderExport() {
+  $('#foot').classList.add('hidden');
+  const today = isoDay(new Date());
+  const pend = allMeters().filter(m => !S.readings[m.id]);
+  const flags = allMeters().filter(m => { const r = S.readings[m.id]; if (!r) return false; const c = checkValue(m, r.value); return !r.photo || (c && c.lvl !== 'ok'); });
+  const stats = S.meta.sheets.map(s => { const [d, t] = progress(s.tipo); return `<div class="stat"><span>${TIPOS[s.tipo].nombre}</span><b>${d} de ${t}</b></div>`; }).join('');
+  $('#main').innerHTML = `
+    <button class="btn sec" id="back">‹ Volver a la lista</button><div style="height:12px"></div>
+    <div class="card"><h2>Resumen</h2>${stats}
+      ${pend.length ? `<div class="msg show warn">Faltan ${pend.length} medidores. En el Excel quedarán sin lectura actual${S.meta.rollForward ? ' y su consumo saldrá negativo hasta que se llenen' : ''}.</div>` : '<div class="msg show ok">Todos los medidores tienen lectura.</div>'}
+      ${flags.length ? `<div class="msg show warn">${flags.length} lecturas con alerta o sin foto (marcadas con ⚠️ en la lista).</div>` : ''}
+    </div>
+    <div class="card"><h2>Excel de la empresa</h2>
+      <label class="f" for="dt">Fecha de toma de lecturas</label>
+      <input type="date" class="t" id="dt" value="${today}">
+      <div style="height:12px"></div>
+      <button class="btn" id="exXlsx">📊 Descargar Excel lleno</button>
+    </div>
+    <div class="card"><h2>Fotos de respaldo</h2>
+      <div class="muted">Un .zip con todas las fotos, con nombres como <i>2026-11-27_AGUA_300_GAMBARU.jpg</i>.</div>
+      <div style="height:12px"></div>
+      <button class="btn" id="exFotos">🗂️ Descargar fotos (.zip)</button>
+    </div>
+    <div class="card"><h2>Juntar con otros teléfonos</h2>
+      <div class="muted">Si varias personas tomaron lecturas: cada una envía su paquete a quien arma el Excel, y esa persona lo importa aquí.</div>
+      <div style="height:12px"></div>
+      <div class="row"><button class="btn sec" id="exPkg">📤 Enviar mis lecturas</button><button class="btn sec" id="imPkg">📥 Importar paquete</button></div>
+    </div>
+    <div class="card"><h2>Mes nuevo</h2>
+      <div class="muted">Cuando ya entregaste el Excel y las fotos, carga el reporte nuevo para empezar el siguiente mes. Esto borra las lecturas y fotos guardadas en este teléfono.</div>
+      <div style="height:12px"></div>
+      <button class="btn danger" id="reset">Empezar con otro archivo</button>
+      <div class="muted" style="margin-top:10px">Versión ${APP_VERSION}</div>
+    </div>`;
+  $('#back').onclick = renderList;
+  const getDate = () => { const [y, mo, d] = ($('#dt').value || today).split('-').map(Number); return new Date(y, mo - 1, d); };
+  $('#exXlsx').onclick = async () => {
+    const d = getDate(); toast('Armando el Excel…');
+    try {
+      const blob = await buildExcel(d);
+      await shareOrDownload(blob, `Reporte_de_consumo_de_locales_${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}.xlsx`);
+    } catch (e) { console.error(e); toast('Error al armar el Excel: ' + e.message, 5000); }
+  };
+  $('#exFotos').onclick = async () => {
+    const d = getDate(); const zip = new JSZip(); const used = new Set(); let n = 0;
+    for (const m of allMeters()) {
+      const r = S.readings[m.id]; if (!r || !r.photo) continue;
+      const b = await DB.get('photos', m.id); if (!b) continue;
+      zip.folder(TIPOS[m.tipo].etiqueta).file(photoName(m, r.takenAt ? new Date(r.takenAt) : d, used), b); n++;
+    }
+    if (!n) { toast('Todavía no hay fotos'); return; }
+    toast(`Comprimiendo ${n} fotos…`);
+    const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/zip' });
+    await shareOrDownload(blob, `Fotos_medidores_${isoDay(d)}.zip`);
+  };
+  $('#exPkg').onclick = exportPackage;
+  $('#imPkg').onclick = () => { $('#filePkg').value = ''; $('#filePkg').click(); };
+  $('#reset').onclick = async () => {
+    if (!(await ask('Se borrarán todas las lecturas y fotos de este teléfono.\n¿Ya descargaste el Excel y las fotos?', 'Sí, empezar de nuevo'))) return;
+    await DB.clear('readings'); await DB.clear('photos'); await DB.del('kv', 'meta'); await DB.del('kv', 'file');
+    S.meta = null; S.readings = {}; renderSetup();
+  };
+}
+
+async function exportPackage() {
+  const zip = new JSZip(); const data = { app: 'lecturas-medidores', version: 1, fileHash: S.meta.fileHash, fileName: S.meta.fileName, from: S.reader, readings: {} };
+  for (const [id, r] of Object.entries(S.readings)) {
+    data.readings[id] = r;
+    if (r.photo) { const b = await DB.get('photos', id); if (b) zip.file('fotos/' + id.replace(':', '_') + '.jpg', b); }
+  }
+  if (!Object.keys(data.readings).length) { toast('No tienes lecturas para enviar'); return; }
+  zip.file('lecturas.json', JSON.stringify(data));
+  const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/zip' });
+  await shareOrDownload(blob, `Lecturas_${safeName(S.reader)}_${isoDay(new Date())}.zip`);
+}
+$('#filePkg').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const zip = await JSZip.loadAsync(await f.arrayBuffer());
+    const data = JSON.parse(await zip.file('lecturas.json').async('string'));
+    if (data.fileHash !== S.meta.fileHash && !(await ask(`Ese paquete se hizo con otro archivo de Excel (${data.fileName}). Las filas podrían no coincidir.\n¿Importar de todas formas?`, 'Importar'))) return;
+    const ids = new Set(allMeters().map(m => m.id)); let added = 0, skipped = 0;
+    for (const [id, r] of Object.entries(data.readings)) {
+      if (!ids.has(id)) { skipped++; continue; }
+      const mine = S.readings[id];
+      if (mine && mine.t >= r.t) { skipped++; continue; }
+      if (r.photo) { const pf = zip.file('fotos/' + id.replace(':', '_') + '.jpg'); if (pf) await DB.put('photos', id, await pf.async('blob')); else r.photo = false; }
+      await DB.put('readings', id, r); S.readings[id] = r; added++;
+    }
+    await ask(`Paquete de ${data.from || 'otro teléfono'}:\n${added} lecturas importadas${skipped ? `, ${skipped} omitidas (ya tenías una más reciente)` : ''}.`, 'Listo', null);
+    renderExport();
+  } catch (err) { console.error(err); toast('Ese archivo no es un paquete de lecturas válido', 4000); }
+};
+
+/* ---------- Cargar Excel ---------- */
+async function sha(buf) {
+  try { const h = await crypto.subtle.digest('SHA-256', buf); return [...new Uint8Array(h)].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join(''); }
+  catch { return String(buf.byteLength); }
+}
+$('#fileXlsx').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    if ($('#inName') && $('#inName').value.trim()) { S.reader = $('#inName').value.trim(); DB.put('kv', 'reader', S.reader); }
+    const buf = await f.arrayBuffer();
+    const parsed = await parseReport(buf);
+    if (!parsed.sheets.length) { await ask('No encontré hojas de AGUA o GAS con las columnas "NUMERO DE LOCAL", "LECTURA ANTERIOR" y "LECTURA ACTUAL". ¿Es el reporte correcto?', 'Entendido', null); return; }
+    const meta = { ...parsed, fileName: f.name, fileHash: await sha(buf), rollForward: $('#inRoll') ? $('#inRoll').checked : true, loadedAt: Date.now() };
+    await DB.put('kv', 'file', buf); await DB.put('kv', 'meta', meta);
+    S.meta = meta; S.tab = meta.sheets[0].tipo; S.filter = 'pend';
+    const resumen = meta.sheets.map(s => `${TIPOS[s.tipo].nombre}: ${s.meters.length} medidores`).join('\n');
+    await ask(`Archivo cargado ✔\n${resumen}\n\n(Las filas ocultas del Excel no se incluyen.)`, 'Empezar', null);
+    renderList();
+  } catch (err) { console.error(err); await ask('No pude leer ese archivo: ' + err.message, 'Entendido', null); }
+};
+
+$('#btnExport').onclick = renderExport;
+
+/* ---------- Inicio ---------- */
+(async function init() {
+  try {
+    await DB.open();
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+    S.reader = (await DB.get('kv', 'reader')) || '';
+    S.meta = await DB.get('kv', 'meta');
+    S.readings = await DB.entries('readings');
+    if (S.meta && S.meta.sheets.length) { S.tab = S.meta.sheets[0].tipo; renderList(); } else renderSetup();
+    refreshGps();
+  } catch (err) { $('#main').innerHTML = `<div class="card">No se pudo iniciar la app: ${esc(err.message)}</div>`; }
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
