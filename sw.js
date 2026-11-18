@@ -1,5 +1,5 @@
 // Guarda la app en el teléfono para que funcione sin señal.
-const CACHE = 'lecturas-v1';
+const CACHE = 'lecturas-v2';
 const FILES = ['./', 'index.html', 'jszip.min.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

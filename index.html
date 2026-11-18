@@ -3,132 +3,175 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#12355b">
+<meta name="theme-color" content="#0f2742">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Lecturas de medidores</title>
 <style>
   :root{
-    --azul:#12355b; --azul2:#1d4f86; --agua:#2f80c8; --gas:#d98a00;
-    --ok:#1e8a4c; --warn:#b26a00; --err:#c0392b;
-    --bg:#f3f6fa; --card:#fff; --txt:#1b2430; --sub:#5d6b7a; --line:#dde3ea;
+    --navy:#0f2742; --navy2:#1a3a5f;
+    --agua:#1f7ae0; --agua-bg:#e8f2fd; --agua-dk:#0f5bb0;
+    --gas:#f0a202; --gas-bg:#fff4dc; --gas-dk:#a86e00;
+    --yel:#ffd43b; --yel-dk:#e6b800;
+    --ok:#1f9d55; --ok-bg:#e6f6ec; --warn:#b26a00; --err:#c0392b;
+    --bg:#f2f5f9; --card:#fff; --txt:#16202c; --sub:#647487; --line:#dfe5ec;
+    --acc:var(--agua); --acc-bg:var(--agua-bg); --acc-dk:var(--agua-dk);
   }
+  body.gas{--acc:var(--gas);--acc-bg:var(--gas-bg);--acc-dk:var(--gas-dk)}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  button,input,select,textarea{font:inherit}
-  header{position:sticky;top:0;z-index:5;background:var(--azul);color:#fff;padding:12px 16px calc(10px) ;padding-top:calc(12px + env(safe-area-inset-top))}
-  header h1{margin:0;font-size:18px;font-weight:700}
-  header .sub{font-size:13px;opacity:.8;margin-top:2px}
-  main{padding:12px 12px 110px;max-width:680px;margin:0 auto}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
-  .card h2{margin:0 0 8px;font-size:17px}
+  button,input{font:inherit;color:inherit}
+  .hidden{display:none!important}
+
+  /* Encabezado */
+  header{position:sticky;top:0;z-index:10;background:var(--navy);color:#fff;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;gap:10px}
+  header img{width:34px;height:34px;border-radius:9px}
+  header .ht{flex:1;min-width:0}
+  header h1{margin:0;font-size:17px;font-weight:800;letter-spacing:.2px}
+  header .s{font-size:12.5px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hbtn{background:rgba(255,255,255,.12);border:0;border-radius:10px;color:#fff;padding:8px 12px;font-weight:700;font-size:14px;cursor:pointer}
+  main{padding:14px 14px 40px;max-width:640px;margin:0 auto}
+
+  /* Interruptor Agua / Gas */
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .seg button{border:2px solid var(--line);background:#fff;border-radius:16px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;transition:all .15s}
+  .seg .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex:none}
+  .seg .nm{font-weight:900;font-size:17px;letter-spacing:.5px}
+  .seg .pr{font-size:12.5px;color:var(--sub)}
+  .seg .agua .ic{background:var(--agua-bg)} .seg .gas .ic{background:var(--gas-bg)}
+  .seg .agua.on{border-color:var(--agua);background:var(--agua);color:#fff}
+  .seg .gas.on{border-color:var(--gas);background:var(--gas);color:#1f1500}
+  .seg .on .ic{background:rgba(255,255,255,.25)} .seg .on .pr{color:inherit;opacity:.85}
+
+  .lbl{font-size:12px;font-weight:800;letter-spacing:1.2px;color:var(--sub);margin:4px 2px 8px;text-transform:uppercase}
+  /* Grupos (manifold / nivel) */
+  .pills{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none;margin:0 -14px;padding-left:16px;padding-right:16px}
+  .pills::-webkit-scrollbar{display:none}
+  .pill{flex:none;min-width:58px;border:2px solid var(--line);background:#fff;border-radius:14px;padding:8px 10px 7px;text-align:center;cursor:pointer;position:relative}
+  .pill b{display:block;font-size:19px;line-height:1.1}
+  .pill small{display:block;font-size:11.5px;color:var(--sub);margin-top:2px}
+  .pill.on{border-color:var(--acc);background:var(--acc-bg)}
+  .pill.done{border-color:var(--ok)}
+  .pill.done small{color:var(--ok);font-weight:700}
+  .where{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--sub);margin:8px 2px 14px}
+  .where b{color:var(--txt)}
+
+  /* Locales */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .tile{background:#fff;border:2px solid var(--line);border-radius:14px;padding:10px 8px 9px;text-align:center;cursor:pointer;min-height:76px;display:flex;flex-direction:column;justify-content:center;transition:transform .08s}
+  .tile:active{transform:scale(.97)}
+  .tile .n{font-weight:900;font-size:18px;line-height:1.15;word-break:break-word}
+  .tile .c{font-size:11.5px;color:var(--sub);line-height:1.2;margin-top:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .tile.done{background:var(--ok-bg);border-color:#b9e3c8}
+  .tile.done .v{font-size:12.5px;font-weight:800;color:var(--ok);margin-top:3px}
+  .tile.flag{background:#fff6e6;border-color:#f3d39a}
+  .tile.flag .v{color:var(--warn)}
+  .tile.manual{border-style:dashed}
+  .groupdone{background:var(--ok-bg);color:#14603a;border-radius:14px;padding:12px 14px;margin-bottom:12px;font-weight:600;display:flex;gap:8px;align-items:center}
+
+  /* Hoja de captura (sube desde abajo) */
+  .scrim{position:fixed;inset:0;background:rgba(8,20,35,.45);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .cap{position:fixed;left:0;right:0;bottom:0;z-index:31;background:#fff;border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);transform:translateY(105%);transition:transform .25s ease;max-height:92vh;overflow:auto;padding:8px 16px calc(16px + env(safe-area-inset-bottom))}
+  .cap.open{transform:none}
+  .cap .in{max-width:640px;margin:0 auto}
+  .grab{width:42px;height:5px;border-radius:3px;background:#d5dce4;margin:4px auto 10px}
+  .cap .hd{display:flex;align-items:flex-start;gap:10px}
+  .cap .badge{background:var(--acc);color:#fff;border-radius:12px;padding:6px 10px;font-weight:900;font-size:20px;line-height:1.1;min-width:58px;text-align:center}
+  body.gas .cap .badge{color:#1f1500}
+  .cap .ti{flex:1;min-width:0}
+  .cap .ti b{display:block;font-size:17px;line-height:1.2}
+  .cap .ti span{font-size:13px;color:var(--sub)}
+  .xbtn{border:0;background:#eef2f6;border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer;flex:none}
+  .prev{display:flex;gap:8px;margin:12px 0}
+  .prev div{flex:1;background:#f3f6f9;border-radius:12px;padding:8px 10px;font-size:12.5px;color:var(--sub)}
+  .prev b{display:block;font-size:17px;color:var(--txt)}
+  .capture{display:grid;grid-template-columns:118px 1fr;gap:12px;align-items:stretch}
+  .cam{border:2.5px dashed #b9c4d0;border-radius:16px;background:#f7f9fb;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:118px;padding:0;overflow:hidden;position:relative}
+  .cam span{font-size:12.5px;font-weight:700;color:var(--sub)}
+  .cam img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .cam.has{border-style:solid;border-color:var(--ok)}
+  .cam .re{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;font-size:11.5px;padding:3px 8px;border-radius:10px;white-space:nowrap}
+  .valbox{display:flex;flex-direction:column;justify-content:center}
+  .valbox input{width:100%;border:2.5px solid var(--line);border-radius:16px;padding:14px 10px;font-size:32px;font-weight:900;text-align:center;letter-spacing:1px;background:#fff}
+  .valbox input:focus{outline:none;border-color:var(--acc)}
+  .valbox .u{text-align:center;font-weight:800;color:var(--sub);margin-top:6px;letter-spacing:1px}
+  .hint{font-size:12.5px;color:var(--sub);margin-top:8px}
+  .gps{font-size:12px;color:var(--sub);margin-top:6px}
+  .msg{border-radius:12px;padding:9px 12px;margin-top:10px;font-size:14.5px;display:none}
+  .msg.show{display:block}
+  .msg.warn{background:#fff3dc;color:#7a4a00} .msg.err{background:#fdecea;color:#8e2418} .msg.ok{background:var(--ok-bg);color:#14603a}
+  .notebtn{background:none;border:0;color:var(--acc-dk);font-weight:700;font-size:14px;padding:10px 0 0;cursor:pointer}
+  .t{width:100%;border:2px solid var(--line);border-radius:12px;padding:12px;background:#fff;font-size:16px}
+  .t:focus{outline:none;border-color:var(--navy2)}
+  .save{width:100%;margin-top:14px;border:0;border-radius:16px;background:var(--yel);color:#1b1500;font-weight:900;font-size:19px;letter-spacing:1px;min-height:58px;cursor:pointer;box-shadow:0 3px 0 var(--yel-dk)}
+  .save:active{transform:translateY(2px);box-shadow:0 1px 0 var(--yel-dk)}
+  .save:disabled{opacity:.5}
+  .del{width:100%;margin-top:10px;border:0;background:none;color:var(--err);font-weight:700;padding:8px;cursor:pointer}
+
+  /* Pantallas de inicio y menú */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px}
+  .card h2{margin:0 0 6px;font-size:17px}
   .muted{color:var(--sub);font-size:14px}
-  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border:0;border-radius:12px;background:var(--azul2);color:#fff;font-weight:650;font-size:16px;padding:10px 16px;cursor:pointer}
-  .btn.sec{background:#e7edf4;color:var(--azul)}
-  .btn.ok{background:var(--ok)}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border:0;border-radius:14px;background:var(--navy2);color:#fff;font-weight:750;font-size:16px;padding:10px 16px;cursor:pointer;margin-top:12px}
+  .btn.sec{background:#e8eef5;color:var(--navy)}
   .btn.danger{background:#fbe9e7;color:var(--err)}
-  .btn:disabled{opacity:.45}
-  .row{display:flex;gap:8px}
-  .row>*{flex:1}
-  label.f{display:block;font-size:14px;color:var(--sub);margin:10px 0 4px}
-  input.t,textarea.t{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px;background:#fff;font-size:16px}
-  input.t:focus,textarea.t:focus{outline:none;border-color:var(--azul2)}
+  .row{display:flex;gap:8px} .row>*{flex:1}
   .chk{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:15px}
   .chk input{width:22px;height:22px;margin-top:1px;flex:none}
-  .tabs{display:flex;gap:8px;margin-bottom:10px}
-  .tab{flex:1;border:2px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:center;font-weight:700;cursor:pointer}
-  .tab small{display:block;font-weight:500;color:var(--sub);font-size:13px}
-  .tab.on.agua{border-color:var(--agua);background:#eaf3fc}
-  .tab.on.gas{border-color:var(--gas);background:#fdf3e1}
-  .bar{height:6px;border-radius:3px;background:#e3e8ee;overflow:hidden;margin-top:6px}
-  .bar i{display:block;height:100%;background:var(--ok)}
-  .search{position:relative;margin-bottom:8px}
-  .search input{padding-left:40px}
-  .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.5}
-  .chips{display:flex;gap:6px;margin-bottom:10px}
-  .chip{border:1px solid var(--line);background:#fff;border-radius:20px;padding:6px 12px;font-size:14px;cursor:pointer}
-  .chip.on{background:var(--azul);color:#fff;border-color:var(--azul)}
-  .m{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer}
-  .m .loc{font-weight:800;font-size:17px;min-width:64px}
-  .m .info{flex:1;min-width:0}
-  .m .com{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .m .det{font-size:13px;color:var(--sub)}
-  .m .st{text-align:right;font-size:13px;color:var(--sub);white-space:nowrap}
-  .m .st b{display:block;font-size:17px;color:var(--ok)}
-  .m.done{border-left:5px solid var(--ok)}
-  .m.flag{border-left:5px solid var(--warn)}
-  .empty{text-align:center;color:var(--sub);padding:30px 10px}
-  footer{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));z-index:5}
-  footer .in{max-width:680px;margin:0 auto}
-  /* Hoja de lectura */
-  .sheet{position:fixed;inset:0;background:var(--bg);z-index:20;overflow:auto;display:none}
-  .sheet.open{display:block}
-  .sheet .top{position:sticky;top:0;background:var(--azul);color:#fff;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));display:flex;align-items:center;gap:12px;z-index:2}
-  .sheet .top button{background:none;border:0;color:#fff;font-size:26px;line-height:1;padding:0 6px;cursor:pointer}
-  .sheet .body{padding:12px;max-width:680px;margin:0 auto 40px}
-  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:15px}
-  .kv span{color:var(--sub)}
-  .big{font-size:34px;font-weight:800;letter-spacing:1px;text-align:center;padding:14px}
-  .prev{display:flex;justify-content:space-between;background:#eef2f7;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:15px}
-  .prev b{font-size:18px}
-  .photo{width:100%;border-radius:12px;display:block;margin-top:10px}
-  .msg{border-radius:10px;padding:10px 12px;margin-top:10px;font-size:15px;display:none}
-  .msg.show{display:block}
-  .msg.warn{background:#fff4e0;color:#7a4a00}
-  .msg.err{background:#fdecea;color:#8e2418}
-  .msg.ok{background:#e8f6ee;color:#14603a}
-  .gps{font-size:13px;color:var(--sub);margin-top:6px}
-  /* Modal */
-  .modal{position:fixed;inset:0;background:rgba(10,20,35,.55);display:none;align-items:flex-end;justify-content:center;z-index:50}
-  .modal.open{display:flex}
-  .modal .box{background:#fff;border-radius:16px 16px 0 0;padding:20px 16px calc(16px + env(safe-area-inset-bottom));width:100%;max-width:680px}
-  .modal p{margin:0 0 16px;font-size:16px;white-space:pre-line}
-  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#1b2430;color:#fff;padding:10px 16px;border-radius:10px;font-size:15px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%}
-  .toast.show{opacity:1}
   .stat{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
   .stat:last-child{border:0}
-  .hidden{display:none!important}
+  .list{font-size:14px;margin:8px 0 0;padding-left:18px;color:var(--txt)} .list li{margin:2px 0}
+  .hero{text-align:center;padding:10px 0 6px}
+  .hero img{width:72px;height:72px;border-radius:18px}
+  .hero h2{margin:10px 0 2px;font-size:21px}
+
+  .modal{position:fixed;inset:0;background:rgba(10,20,35,.55);display:none;align-items:flex-end;justify-content:center;z-index:50}
+  .modal.open{display:flex}
+  .modal .box{background:#fff;border-radius:20px 20px 0 0;padding:20px 16px calc(16px + env(safe-area-inset-bottom));width:100%;max-width:640px}
+  .modal p{margin:0 0 4px;font-size:16px;white-space:pre-line}
+  .toast{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top));transform:translate(-50%,-10px);background:#16202c;color:#fff;padding:10px 16px;border-radius:12px;font-size:15px;font-weight:600;z-index:60;opacity:0;transition:all .2s;pointer-events:none;max-width:90%;text-align:center}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
 <header>
-  <h1>Lecturas de medidores</h1>
-  <div class="sub" id="hdrSub">Agua y gas por local</div>
+  <img src="icon-192.png" alt="">
+  <div class="ht"><h1>Lecturas de medidores</h1><div class="s" id="hdrSub">Agua y gas por local</div></div>
+  <button class="hbtn hidden" id="btnMenu">Exportar ☰</button>
 </header>
 <main id="main"></main>
-<footer id="foot" class="hidden"><div class="in row">
-  <button class="btn" id="btnExport">Terminar, exportar y más opciones</button>
-</div></footer>
 
-<!-- Hoja para tomar una lectura -->
-<div class="sheet" id="sheet">
-  <div class="top"><button id="shClose" aria-label="Cerrar">‹</button><div><div id="shTitle" style="font-weight:700"></div><div id="shSub" style="font-size:13px;opacity:.8"></div></div></div>
-  <div class="body">
-    <div class="card">
-      <div class="kv" id="shInfo"></div>
-      <div class="prev" id="shPrev"></div>
-    </div>
-    <div class="card">
-      <h2>1. Foto del medidor</h2>
-      <input type="file" id="cam" accept="image/*" capture="environment" class="hidden">
-      <button class="btn" id="btnCam">📷 Tomar foto</button>
-      <img id="shPhoto" class="photo hidden" alt="Foto del medidor">
-      <div class="gps" id="shGps"></div>
-    </div>
-    <div class="card">
-      <h2>2. Lectura</h2>
-      <div class="muted" id="shHint"></div>
-      <input class="t big" id="val" inputmode="decimal" autocomplete="off" placeholder="0">
-      <div class="msg" id="shMsg"></div>
-      <label class="f" for="note">Nota (opcional): local cerrado, medidor tapado…</label>
-      <input class="t" id="note" autocomplete="off">
-    </div>
-    <button class="btn ok" id="btnSave">Guardar lectura</button>
-    <div style="height:10px"></div>
-    <button class="btn danger hidden" id="btnDel">Borrar esta lectura</button>
+<!-- Hoja de captura -->
+<div class="scrim" id="scrim"></div>
+<div class="cap" id="cap"><div class="in">
+  <div class="grab"></div>
+  <div class="hd">
+    <div class="badge" id="cBadge"></div>
+    <div class="ti"><b id="cCom"></b><span id="cSub"></span></div>
+    <button class="xbtn" id="cClose" aria-label="Cerrar">✕</button>
   </div>
-</div>
+  <div class="prev" id="cPrev"></div>
+  <div class="capture">
+    <button class="cam" id="cCam" type="button">
+      <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#16202c" stroke-width="1.8" stroke-linejoin="round"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.3l1.4-2h7.6l1.4 2h2.3A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/><circle cx="12" cy="12.5" r="3.6"/><circle cx="17.6" cy="9.6" r=".5" fill="#16202c"/></svg>
+      <span>Tomar foto</span>
+    </button>
+    <div class="valbox">
+      <input id="val" inputmode="decimal" autocomplete="off" placeholder="0">
+      <div class="u" id="cUnit">M³</div>
+    </div>
+  </div>
+  <div class="hint" id="cHint"></div>
+  <div class="gps" id="cGps"></div>
+  <div class="msg" id="cMsg"></div>
+  <button class="notebtn" id="cNoteBtn" type="button">+ Agregar nota</button>
+  <input class="t hidden" id="note" placeholder="Local cerrado, medidor tapado…" autocomplete="off" style="margin-top:8px">
+  <button class="save" id="cSave">GUARDAR</button>
+  <button class="del hidden" id="cDel">Borrar esta lectura</button>
+</div></div>
+<input type="file" id="cam" accept="image/*" capture="environment" class="hidden">
 
 <div class="modal" id="modal"><div class="box"><p id="mText"></p><div class="row"><button class="btn sec" id="mNo">Cancelar</button><button class="btn" id="mYes">Aceptar</button></div></div></div>
 <div class="toast" id="toast"></div>
@@ -138,65 +181,52 @@
 <script src="jszip.min.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '0.1 (prueba)';
+const APP_VERSION = '0.2 (prueba)';
+/* Recorrido tomado de "Toma Medidas de Agua y Gas.xlsx": agua por manifold, gas por nivel. */
+const ROUTE = {"agua": {"label": "Manifold", "groups": [{"id": "1", "name": "1", "where": "Atrás de Antigua Cerveza", "items": [{"local": "PB-5", "comercio": "ANTIGUA CERVEZA"}, {"local": "PB-4", "comercio": "FRIDAS VIDERE"}, {"local": "100", "comercio": "SPA"}, {"local": "201", "comercio": "DE MUSEO"}, {"local": "101", "comercio": "SUEÑA CENTER"}, {"local": "102", "comercio": "MUMUSO"}, {"local": "103", "comercio": "SENTIO"}, {"local": "107", "comercio": "MINISO"}, {"local": "206", "comercio": "MEDICA 10"}, {"local": "105", "comercio": "KASPERIE"}, {"local": "205", "comercio": "THE WOOD PLACE"}, {"local": "300", "comercio": "GAMBARU"}, {"local": "321", "comercio": "ROOF PONG"}, {"local": "204", "comercio": "DE MUSEO"}, {"local": "104", "comercio": "ZONA 57"}, {"local": "PB-3", "comercio": "RESTAURANTE GRACIELA"}, {"local": "K PB-1 / K1-01", "comercio": "GARDEN BOUTIQUE / PASTELERIA CIRO"}]}, {"id": "2", "name": "2", "where": "A un costado de subestación", "items": [{"local": "302", "comercio": null}, {"local": "301", "comercio": "DESPECHO"}, {"local": "211", "comercio": "CLARO"}, {"local": "210", "comercio": "ARENA"}, {"local": "208", "comercio": "CANELLA HOME OFFICE"}, {"local": "113", "comercio": "MANUEL ETC SALON"}, {"local": "108", "comercio": "LA FOCACCERIA"}, {"local": "109", "comercio": "SPLAT-SPECIAL PLAYTIME"}, {"local": "110", "comercio": "DOMINGA"}, {"local": "111", "comercio": "ANIZA GARCIA"}, {"local": "112", "comercio": "ICANDY / VILLEDA"}, {"local": "139", "comercio": "ANAIS KIDS"}, {"local": "212", "comercio": "BANCO INDUSTRIAL"}, {"local": "214", "comercio": null}, {"local": "213", "comercio": "TEVI MEVI"}, {"local": "215", "comercio": "MOMENTUM"}]}, {"id": "3", "name": "3", "where": "Basurero", "items": [{"local": "220", "comercio": "ADOC"}, {"local": "118", "comercio": "NEW TRENDS SHOP"}, {"local": "115", "comercio": "LEONISA"}, {"local": "217", "comercio": "COLUMBIA"}, {"local": "219", "comercio": "FINAL LAP"}, {"local": "117", "comercio": "CANTEL"}, {"local": "303", "comercio": null}, {"local": "216", "comercio": "ZONA FUTBOL"}, {"local": "114", "comercio": "NAVA WEAR"}]}, {"id": "4", "name": "4", "where": "A un costado de las PEY en PB", "items": [{"local": "K3-01", "comercio": "MAS CAFÉ"}, {"local": "318", "comercio": "SUGOI RAMEN"}, {"local": "134", "comercio": "REPUBLIC COSMETICS"}, {"local": "135", "comercio": "SKINPHARMA"}, {"local": "136", "comercio": "DEPOSITO DE BELLEZA"}, {"local": "137", "comercio": "BARON´S"}, {"local": "237", "comercio": "LA ROCALLA"}, {"local": "PB-6", "comercio": "QUINOS PIZZERIA (Bodega 1)"}, {"local": "238", "comercio": "AMBIANCE"}, {"local": "309", "comercio": "HAMBURGUESAS DEL MOLINO"}, {"local": "310", "comercio": null}, {"local": "131", "comercio": null}, {"local": "132", "comercio": "PINK SUGAR"}, {"local": "138", "comercio": "COLOR BOX"}, {"local": "133", "comercio": "ALPI  STORE"}, {"local": "PB-2", "comercio": "QUINOS PIZZERIA"}, {"local": "PB-1", "comercio": "JOSPER"}, {"local": "319", "comercio": null}, {"local": "5to.", "comercio": "OFICINA 5TO. NIVEL"}]}, {"id": "5", "name": "5", "where": "Bodega Mantinsa", "items": [{"local": "221", "comercio": "BAMBINOS"}, {"local": "119", "comercio": "LIMAGE"}, {"local": "222", "comercio": "LUXE"}, {"local": "121", "comercio": "USA FLEX"}, {"local": "223", "comercio": "MUSKARI"}, {"local": "224", "comercio": "LERIA"}, {"local": "123", "comercio": "TODOMODA"}, {"local": "225", "comercio": "LEXUS EDITORES"}, {"local": "124", "comercio": "CRUZ VERDE"}, {"local": "226", "comercio": "ORIGYNE"}, {"local": "317", "comercio": "CHURRERIA PORFIRIO"}]}, {"id": "6", "name": "6", "where": "Comedor", "items": [{"local": "126", "comercio": "ISADORA"}, {"local": "B2 QUINOS", "comercio": "QUINOS PIZZERIA (Bodega 2)"}, {"local": "314", "comercio": null}, {"local": "315", "comercio": null}, {"local": "127", "comercio": "TOTTO/TOTTO KIDS"}, {"local": "125 A", "comercio": "BANRURAL"}, {"local": "227 A", "comercio": "BOOM"}, {"local": "227 B", "comercio": "ANAIS"}, {"local": "125 B", "comercio": "ADOC"}, {"local": "227 C", "comercio": "BAC"}, {"local": "125 C", "comercio": "ARISTA"}, {"local": "228", "comercio": "ESE O ESE (SOS)/SENZILL"}, {"local": "229", "comercio": null}, {"local": "128", "comercio": "COFFEE DISTRICT"}, {"local": "313", "comercio": "KOMBI BISTRO"}, {"local": "129", "comercio": null}, {"local": "232", "comercio": "ESTUDIO F"}, {"local": "311", "comercio": "BBQ BROSS"}, {"local": "233", "comercio": "KIPLING"}, {"local": "130", "comercio": null}]}, {"id": "7", "name": "7", "where": "Pasillo de FH", "items": [{"local": "307", "comercio": "PUPUSAS"}, {"local": "308", "comercio": "TAQUERIA LA ESTACION"}, {"local": "304", "comercio": "BUBBLE ICE TEA"}, {"local": "305", "comercio": "LA REFA"}, {"local": "306", "comercio": "DULCE BARILOCHE"}, {"local": "312", "comercio": null}]}, {"id": "otros", "name": "Otros", "where": "Medidores fuera de los manifolds", "items": [{"local": "S1-1 Y S1-2", "comercio": "SUPER FRESH"}, {"local": "S2-1", "comercio": "DOGSMART"}, {"local": "S2-2", "comercio": "RETOUCHERIE"}, {"local": "4", "comercio": "FITNESS ONE"}, {"local": "FH001", "comercio": "GIMNASTICA"}]}]}, "gas": {"label": "Nivel", "groups": [{"id": "S1", "name": "S1", "where": "Sótano 1", "items": [{"local": "S1-1 Y S1-2", "comercio": "SUPER FRESH"}]}, {"id": "PB", "name": "PB", "where": "Planta baja", "items": [{"local": "PB-1", "comercio": null}, {"local": "PB-2", "comercio": "QUINOS PIZZERIA"}, {"local": "PB-3", "comercio": "RESTAURANTE GRACIELA"}, {"local": "PB-4", "comercio": "FRIDAS VIDERE"}, {"local": "PB-5", "comercio": null}]}, {"id": "1", "name": "1", "where": "Nivel 1", "items": [{"local": "108", "comercio": "LA FOCACCERIA"}]}, {"id": "2", "name": "2", "where": "Nivel 2", "items": [{"local": "201", "comercio": "DE MUSEO"}]}, {"id": "3", "name": "3", "where": "Nivel 3", "items": [{"local": "300", "comercio": "GAMBARU"}, {"local": "301", "comercio": "DESPECHO"}, {"local": "302", "comercio": null}, {"local": "305", "comercio": "LA REFA"}, {"local": "306", "comercio": "DULCE BARILOCHE"}, {"local": "307", "comercio": "PUPUSAS"}, {"local": "308", "comercio": "TAQUERIA LA ESTACION"}, {"local": "309", "comercio": "HAMBURGUESAS DEL MOLINO"}, {"local": "310", "comercio": null}, {"local": "311", "comercio": "BBQ BROSS"}, {"local": "312", "comercio": null}, {"local": "313", "comercio": "KOMBI BISTRO"}, {"local": "314", "comercio": "CHURRERIA PORFIRIO"}, {"local": "315", "comercio": "GOURMELT"}, {"local": "316", "comercio": null}, {"local": "318", "comercio": "SUGOI RAMEN"}, {"local": "319", "comercio": null}, {"local": "321", "comercio": "ROOF PONG"}]}, {"id": "4", "name": "4", "where": "Nivel 4", "items": [{"local": "400", "comercio": "FETNESS ONE"}]}]}};
+const TIPOS = {
+  agua: { nombre: 'Agua', etiqueta: 'AGUA', unidad: 'M³', icono: '💧' },
+  gas:  { nombre: 'Gas',  etiqueta: 'GAS',  unidad: 'M³', icono: '🔥' }
+};
+
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
+const key = s => norm(s).replace(/\s+/g, '');
 const fmt = n => (n === null || n === undefined || n === '') ? '—' : String(Number(Number(n).toFixed(3)));
-const TIPOS = { agua: { nombre: 'Agua', etiqueta: 'AGUA', unidad: 'm³' }, gas: { nombre: 'Gas', etiqueta: 'GAS', unidad: 'm³' } };
 
-/* ---------- Base de datos en el teléfono (IndexedDB) ---------- */
+/* ---------- Base de datos en el teléfono ---------- */
 const DB = {
   db: null,
-  open() {
-    return new Promise((res, rej) => {
-      const r = indexedDB.open('lecturas-medidores', 1);
-      r.onupgradeneeded = () => { const d = r.result; ['kv', 'readings', 'photos'].forEach(n => d.createObjectStore(n)); };
-      r.onsuccess = () => { this.db = r.result; res(); };
-      r.onerror = () => rej(r.error);
-    });
-  },
-  run(store, mode, fn) {
-    return new Promise((res, rej) => {
-      const t = this.db.transaction(store, mode); const s = t.objectStore(store);
-      let out; const q = fn(s); if (q) q.onsuccess = () => { out = q.result; };
-      t.oncomplete = () => res(out); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
-    });
-  },
+  open() { return new Promise((res, rej) => { const r = indexedDB.open('lecturas-medidores-v2', 1);
+    r.onupgradeneeded = () => ['kv', 'readings', 'photos'].forEach(n => r.result.createObjectStore(n));
+    r.onsuccess = () => { this.db = r.result; res(); }; r.onerror = () => rej(r.error); }); },
+  run(st, mode, fn) { return new Promise((res, rej) => { const t = this.db.transaction(st, mode); let out; const q = fn(t.objectStore(st));
+    if (q) q.onsuccess = () => { out = q.result; }; t.oncomplete = () => res(out); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); }); },
   get(st, k) { return this.run(st, 'readonly', s => s.get(k)); },
   put(st, k, v) { return this.run(st, 'readwrite', s => s.put(v, k)); },
   del(st, k) { return this.run(st, 'readwrite', s => s.delete(k)); },
   clear(st) { return this.run(st, 'readwrite', s => s.clear()); },
-  entries(st) {
-    return new Promise((res, rej) => {
-      const out = {}; const t = this.db.transaction(st, 'readonly');
-      t.objectStore(st).openCursor().onsuccess = e => { const c = e.target.result; if (c) { out[c.key] = c.value; c.continue(); } };
-      t.oncomplete = () => res(out); t.onerror = () => rej(t.error);
-    });
-  }
+  entries(st) { return new Promise((res, rej) => { const out = {}; const t = this.db.transaction(st, 'readonly');
+    t.objectStore(st).openCursor().onsuccess = e => { const c = e.target.result; if (c) { out[c.key] = c.value; c.continue(); } };
+    t.oncomplete = () => res(out); t.onerror = () => rej(t.error); }); }
 };
 
-/* ---------- Estado ---------- */
-const S = { meta: null, readings: {}, tab: 'agua', filter: 'pend', q: '', reader: '', current: null, shot: null, gps: null };
+const S = { meta: null, readings: {}, tipo: 'agua', group: {}, reader: '', cur: null, shot: null, gps: null };
 
-/* ---------- Utilidades de interfaz ---------- */
-function toast(t, ms = 2200) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), ms); }
+/* ---------- Interfaz: utilidades ---------- */
+function toast(t, ms = 2000) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), ms); }
 function ask(text, yes = 'Aceptar', no = 'Cancelar') {
   return new Promise(res => {
-    $('#mText').textContent = text; $('#mYes').textContent = yes; $('#mNo').textContent = no;
-    $('#mNo').classList.toggle('hidden', no === null);
-    $('#modal').classList.add('open');
+    $('#mText').textContent = text; $('#mYes').textContent = yes; $('#mNo').textContent = no || '';
+    $('#mNo').classList.toggle('hidden', no === null); $('#modal').classList.add('open');
     const done = v => { $('#modal').classList.remove('open'); $('#mYes').onclick = $('#mNo').onclick = null; res(v); };
     $('#mYes').onclick = () => done(true); $('#mNo').onclick = () => done(false);
   });
 }
-function download(blob, name) {
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-}
+function download(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
 async function shareOrDownload(blob, name) {
-  try {
-    const file = new File([blob], name, { type: blob.type });
+  try { const file = new File([blob], name, { type: blob.type });
     if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return; }
   } catch (e) { if (e && e.name === 'AbortError') return; }
   download(blob, name);
@@ -207,65 +237,43 @@ const fechaLarga = d => d.toLocaleDateString('es-GT', { day: 'numeric', month: '
   d.toLocaleTimeString('es-GT', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
 const safeName = s => norm(s).replace(/[^A-Z0-9-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'SN';
 
-/* ---------- Lectura del Excel tal cual ---------- */
+/* ---------- Leer el reporte de Excel tal cual ---------- */
 const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
 const colNum = c => c.split('').reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0);
 const splitRef = r => { const m = /^([A-Z]+)(\d+)$/.exec(r); return [m[1], +m[2]]; };
-
 async function openXlsx(buf) {
   const zip = await JSZip.loadAsync(buf);
   const xml = async p => new DOMParser().parseFromString(await zip.file(p).async('string'), 'application/xml');
-  const wb = await xml('xl/workbook.xml');
-  const rels = await xml('xl/_rels/workbook.xml.rels');
-  const relMap = {};
-  for (const r of rels.getElementsByTagName('Relationship')) {
-    let t = r.getAttribute('Target'); t = t.startsWith('/') ? t.slice(1) : 'xl/' + t; relMap[r.getAttribute('Id')] = t;
-  }
+  const wb = await xml('xl/workbook.xml'); const rels = await xml('xl/_rels/workbook.xml.rels'); const relMap = {};
+  for (const r of rels.getElementsByTagName('Relationship')) { let t = r.getAttribute('Target'); relMap[r.getAttribute('Id')] = t.startsWith('/') ? t.slice(1) : 'xl/' + t; }
   const ss = [];
-  if (zip.file('xl/sharedStrings.xml')) {
-    const d = await xml('xl/sharedStrings.xml');
-    for (const si of d.getElementsByTagName('si'))
-      ss.push([...si.getElementsByTagName('t')].filter(t => t.parentNode.localName !== 'rPh').map(t => t.textContent).join(''));
-  }
-  const sheets = [...wb.getElementsByTagName('sheet')].map(s => ({
-    name: s.getAttribute('name'), state: s.getAttribute('state') || 'visible',
-    path: relMap[s.getAttribute('r:id')]
-  }));
+  if (zip.file('xl/sharedStrings.xml')) { const d = await xml('xl/sharedStrings.xml');
+    for (const si of d.getElementsByTagName('si')) ss.push([...si.getElementsByTagName('t')].filter(t => t.parentNode.localName !== 'rPh').map(t => t.textContent).join('')); }
+  const sheets = [...wb.getElementsByTagName('sheet')].map(s => ({ name: s.getAttribute('name'), state: s.getAttribute('state') || 'visible', path: relMap[s.getAttribute('r:id')] }));
   return { zip, xml, ss, sheets };
 }
-
 function cellValue(c, ss) {
   const t = c.getAttribute('t'); const v = c.getElementsByTagName('v')[0];
   if (t === 's') return v ? ss[+v.textContent] : null;
   if (t === 'inlineStr') { const is = c.getElementsByTagName('is')[0]; return is ? is.textContent : null; }
-  if (!v) return null;
-  if (t === 'str' || t === 'e') return v.textContent;
-  if (t === 'b') return v.textContent === '1';
+  if (!v) return null; if (t === 'str' || t === 'e') return v.textContent; if (t === 'b') return v.textContent === '1';
   const n = Number(v.textContent); return isNaN(n) ? v.textContent : n;
 }
-
 function readGrid(doc, ss) {
   const rows = [];
-  for (const r of doc.getElementsByTagName('row')) {
-    const cells = {};
-    for (const c of r.getElementsByTagName('c')) {
-      const [col] = splitRef(c.getAttribute('r'));
-      cells[col] = { v: cellValue(c, ss), f: c.getElementsByTagName('f').length > 0 };
-    }
-    rows.push({ n: +r.getAttribute('r'), hidden: r.getAttribute('hidden') === '1', cells });
-  }
+  for (const r of doc.getElementsByTagName('row')) { const cells = {};
+    for (const c of r.getElementsByTagName('c')) cells[splitRef(c.getAttribute('r'))[0]] = cellValue(c, ss);
+    rows.push({ n: +r.getAttribute('r'), hidden: r.getAttribute('hidden') === '1', cells }); }
   return rows;
 }
-
 function detectSheet(rows) {
   let hdr = null, dateRef = null;
   for (const row of rows) {
-    for (const [col, c] of Object.entries(row.cells)) {
-      const t = norm(c.v);
+    for (const [col, v] of Object.entries(row.cells)) {
+      const t = norm(v);
       if (t.startsWith('FECHA TOMA DE LECTURA')) {
-        const next = Object.entries(row.cells).filter(([k, x]) => colNum(k) > colNum(col) && typeof x.v === 'number').sort((a, b) => colNum(a[0]) - colNum(b[0]))[0];
-        const blank = Object.keys(row.cells).filter(k => colNum(k) > colNum(col)).sort((a, b) => colNum(a) - colNum(b))[0];
-        dateRef = (next ? next[0] : blank) ? (next ? next[0] : blank) + row.n : null;
+        const right = Object.keys(row.cells).filter(k => colNum(k) > colNum(col)).sort((a, b) => colNum(a) - colNum(b));
+        const num = right.find(k => typeof row.cells[k] === 'number'); dateRef = (num || right[0]) ? (num || right[0]) + row.n : null;
       }
       if (t === 'NUMERO DE LOCAL') hdr = row;
     }
@@ -273,456 +281,315 @@ function detectSheet(rows) {
   }
   if (!hdr) return null;
   const cols = {};
-  for (const [col, c] of Object.entries(hdr.cells)) {
-    const t = norm(c.v);
-    if (t === 'NUMERO DE LOCAL') cols.local = col;
-    else if (t.startsWith('RAZON SOCIAL')) cols.razon = col;
-    else if (t === 'COMERCIO') cols.comercio = col;
+  for (const [col, v] of Object.entries(hdr.cells)) { const t = norm(v);
+    if (t === 'NUMERO DE LOCAL') cols.local = col; else if (t.startsWith('RAZON SOCIAL')) cols.razon = col; else if (t === 'COMERCIO') cols.comercio = col;
     else if (t === 'NUMERO DE CONTADOR' || t === 'CONTADOR ACTUAL') cols.contador = col;
-    else if (t.startsWith('LECTURA ANTERIOR')) cols.anterior = col;
-    else if (t.startsWith('LECTURA ACTUAL')) cols.actual = col;
-  }
-  if (!cols.anterior || !cols.actual) return null;
-  return { headerRow: hdr.n, cols, dateRef };
+    else if (t.startsWith('LECTURA ANTERIOR')) cols.anterior = col; else if (t.startsWith('LECTURA ACTUAL')) cols.actual = col; }
+  return cols.anterior && cols.actual ? { headerRow: hdr.n, cols, dateRef } : null;
 }
-
 async function parseReport(buf) {
-  const X = await openXlsx(buf);
-  const out = { sheets: [] };
+  const X = await openXlsx(buf); const out = [];
   for (const sh of X.sheets) {
     if (sh.state !== 'visible' || !sh.path) continue;
-    const n = norm(sh.name);
-    const tipo = n.includes('AGUA') ? 'agua' : n.includes('GAS') ? 'gas' : null;
-    if (!tipo || out.sheets.some(s => s.tipo === tipo)) continue;
-    const doc = await X.xml(sh.path);
-    const rows = readGrid(doc, X.ss);
-    const det = detectSheet(rows);
-    if (!det) continue;
-    const { cols } = det; const meters = [];
+    const n = norm(sh.name); const tipo = n.includes('AGUA') ? 'agua' : n.includes('GAS') ? 'gas' : null;
+    if (!tipo || out.some(s => s.tipo === tipo)) continue;
+    const rows = readGrid(await X.xml(sh.path), X.ss); const det = detectSheet(rows); if (!det) continue;
+    const rr = [];
     for (const row of rows) {
       if (row.n <= det.headerRow) continue;
-      if (Object.values(row.cells).some(c => /^TOTAL(ES)?$/.test(norm(c.v)))) break;
-      if (row.hidden) continue;
-      const g = k => cols[k] && row.cells[cols[k]] ? row.cells[cols[k]].v : null;
-      const m = {
-        id: tipo + ':' + row.n, tipo, row: row.n,
-        local: g('local'), razon: g('razon'), comercio: g('comercio'), contador: g('contador'),
-        anterior: typeof g('anterior') === 'number' ? g('anterior') : null,
-        actual: typeof g('actual') === 'number' ? g('actual') : null
-      };
-      const hasData = m.razon || m.comercio || m.contador != null || m.anterior != null || m.actual != null;
-      const looksLikeTitle = m.local != null && String(m.local).length > 14 && !hasData;
-      if (!hasData && (m.local == null || looksLikeTitle)) continue;
-      meters.push(m);
+      if (Object.values(row.cells).some(v => /^TOTAL(ES)?$/.test(norm(v)))) break;
+      const g = k => det.cols[k] ? (row.cells[det.cols[k]] ?? null) : null;
+      rr.push({ row: row.n, hidden: row.hidden, local: g('local'), razon: g('razon'), comercio: g('comercio'), contador: g('contador'),
+        anterior: typeof g('anterior') === 'number' ? g('anterior') : null, actual: typeof g('actual') === 'number' ? g('actual') : null });
     }
-    out.sheets.push({ tipo, name: sh.name, path: sh.path, cols, dateRef: det.dateRef, meters });
+    out.push({ tipo, name: sh.name, path: sh.path, cols: det.cols, dateRef: det.dateRef, rows: rr });
   }
   return out;
 }
+/* Une el recorrido (manifold / nivel) con las filas del reporte */
+function buildMeters(sheets) {
+  const meters = [];
+  for (const tipo of Object.keys(ROUTE)) {
+    const sh = sheets.find(s => s.tipo === tipo); if (!sh) continue;
+    for (const g of ROUTE[tipo].groups) for (const it of g.items) {
+      const k = key(it.local);
+      let c = sh.rows.filter(r => r.local != null && key(r.local) === k);
+      if (!c.length && it.comercio) c = sh.rows.filter(r => r.local == null && key(r.comercio || r.razon) === key(it.comercio));
+      const m = c.find(r => !r.hidden) || c[0] || null;
+      meters.push({ id: tipo + ':' + k, tipo, group: g.id, local: it.local, comercio: it.comercio || (m && (m.comercio || m.razon)) || null,
+        row: m ? m.row : null, contador: m ? m.contador : null, anterior: m ? m.anterior : null, actual: m ? m.actual : null });
+    }
+  }
+  return meters;
+}
 
-/* ---------- Escribir el Excel (solo las celdas de lectura) ---------- */
+/* ---------- Escribir el Excel: solo las celdas de lectura ---------- */
 function setCell(doc, ref, value) {
-  const [col, rn] = splitRef(ref);
-  const sheetData = doc.getElementsByTagNameNS(NS, 'sheetData')[0];
-  let row = [...sheetData.getElementsByTagNameNS(NS, 'row')].find(r => +r.getAttribute('r') === rn);
-  if (!row) {
-    row = doc.createElementNS(NS, 'row'); row.setAttribute('r', rn);
-    const after = [...sheetData.getElementsByTagNameNS(NS, 'row')].find(r => +r.getAttribute('r') > rn);
-    sheetData.insertBefore(row, after || null);
-  }
+  const [col, rn] = splitRef(ref); const sd = doc.getElementsByTagNameNS(NS, 'sheetData')[0];
+  let row = [...sd.getElementsByTagNameNS(NS, 'row')].find(r => +r.getAttribute('r') === rn);
+  if (!row) { row = doc.createElementNS(NS, 'row'); row.setAttribute('r', rn); sd.insertBefore(row, [...sd.getElementsByTagNameNS(NS, 'row')].find(r => +r.getAttribute('r') > rn) || null); }
   let c = [...row.getElementsByTagNameNS(NS, 'c')].find(x => x.getAttribute('r') === ref);
-  if (!c) {
-    c = doc.createElementNS(NS, 'c'); c.setAttribute('r', ref);
-    const after = [...row.getElementsByTagNameNS(NS, 'c')].find(x => colNum(splitRef(x.getAttribute('r'))[0]) > colNum(col));
-    row.insertBefore(c, after || null);
-  }
+  if (!c) { c = doc.createElementNS(NS, 'c'); c.setAttribute('r', ref); row.insertBefore(c, [...row.getElementsByTagNameNS(NS, 'c')].find(x => colNum(splitRef(x.getAttribute('r'))[0]) > colNum(col)) || null); }
   if (c.getElementsByTagNameNS(NS, 'f').length) return; // nunca se pisan fórmulas
-  c.removeAttribute('t');
-  [...c.childNodes].forEach(ch => c.removeChild(ch));
-  if (value !== null && value !== undefined && value !== '') {
-    const v = doc.createElementNS(NS, 'v'); v.textContent = String(value); c.appendChild(v);
-  }
+  c.removeAttribute('t'); [...c.childNodes].forEach(ch => c.removeChild(ch));
+  if (value !== null && value !== undefined && value !== '') { const v = doc.createElementNS(NS, 'v'); v.textContent = String(value); c.appendChild(v); }
 }
 const excelSerial = d => Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(1899, 11, 30)) / 86400000);
-const serialize = doc => { let s = new XMLSerializer().serializeToString(doc); if (!s.startsWith('<?xml')) s = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + s; return s; };
-
+const serialize = doc => { let s = new XMLSerializer().serializeToString(doc); return s.startsWith('<?xml') ? s : '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + s; };
 async function buildExcel(dateObj) {
-  const buf = await DB.get('kv', 'file');
-  const X = await openXlsx(buf);
-  const roll = S.meta.rollForward;
+  const X = await openXlsx(await DB.get('kv', 'file')); const roll = S.meta.rollForward;
   for (const sh of S.meta.sheets) {
     const doc = await X.xml(sh.path);
-    for (const m of sh.meters) {
+    for (const m of S.meta.meters.filter(x => x.tipo === sh.tipo && x.row)) {
       const r = S.readings[m.id];
-      if (roll) {
-        setCell(doc, sh.cols.anterior + m.row, m.actual ?? m.anterior);
-        setCell(doc, sh.cols.actual + m.row, r ? r.value : null);
-      } else if (r) {
-        setCell(doc, sh.cols.actual + m.row, r.value);
-      }
+      if (roll) { setCell(doc, sh.cols.anterior + m.row, m.actual ?? m.anterior); setCell(doc, sh.cols.actual + m.row, r ? r.value : null); }
+      else if (r) setCell(doc, sh.cols.actual + m.row, r.value);
     }
     if (sh.dateRef) setCell(doc, sh.dateRef, excelSerial(dateObj));
     X.zip.file(sh.path, serialize(doc));
   }
-  // Que Excel recalcule todas las fórmulas al abrir
-  const wb = await X.xml('xl/workbook.xml');
-  let calc = wb.getElementsByTagNameNS(NS, 'calcPr')[0];
+  const wb = await X.xml('xl/workbook.xml'); let calc = wb.getElementsByTagNameNS(NS, 'calcPr')[0];
   if (!calc) { calc = wb.createElementNS(NS, 'calcPr'); wb.documentElement.appendChild(calc); }
-  calc.setAttribute('fullCalcOnLoad', '1');
-  X.zip.file('xl/workbook.xml', serialize(wb));
+  calc.setAttribute('fullCalcOnLoad', '1'); X.zip.file('xl/workbook.xml', serialize(wb));
   return X.zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression: 'DEFLATE' });
 }
 
-/* ---------- Validación de lecturas ---------- */
-function baseOf(m) { return S.meta.rollForward ? (m.actual ?? m.anterior) : m.anterior; }
-function lastConsumption(m) { return (S.meta.rollForward && m.actual != null && m.anterior != null) ? m.actual - m.anterior : null; }
+/* ---------- Validación ---------- */
+const baseOf = m => S.meta.rollForward ? (m.actual ?? m.anterior) : m.anterior;
+const lastCons = m => (S.meta.rollForward && m.actual != null && m.anterior != null) ? m.actual - m.anterior : null;
 function checkValue(m, v) {
   if (v === null || isNaN(v)) return null;
-  const base = baseOf(m); const prev = lastConsumption(m);
+  const base = baseOf(m), prev = lastCons(m), u = TIPOS[m.tipo].unidad.toLowerCase();
   if (base != null && v < base) return { lvl: 'err', t: `Es menor que la lectura anterior (${fmt(base)}). Revisa el número o si cambiaron el medidor.` };
-  if (base != null && prev != null) {
-    const c = v - base;
-    if (prev > 0 && c > prev * 3 && c - prev > 5) return { lvl: 'warn', t: `Consumo inusual: ${fmt(c)} ${TIPOS[m.tipo].unidad} (el mes pasado fue ${fmt(prev)}). Confirma la lectura.` };
-    if (prev >= 5 && c === 0) return { lvl: 'warn', t: `Consumo cero (el mes pasado fue ${fmt(prev)}). ¿Local cerrado?` };
-    return { lvl: 'ok', t: `Consumo: ${fmt(c)} ${TIPOS[m.tipo].unidad}` + (prev != null ? ` · mes pasado: ${fmt(prev)}` : '') };
-  }
-  if (base != null) return { lvl: 'ok', t: `Consumo: ${fmt(v - base)} ${TIPOS[m.tipo].unidad}` };
-  return null;
+  if (base == null) return null;
+  const c = v - base;
+  if (prev != null && prev > 0 && c > prev * 3 && c - prev > 5) return { lvl: 'warn', t: `Consumo inusual: ${fmt(c)} ${u} (el mes pasado fue ${fmt(prev)}). Confirma la lectura.` };
+  if (prev != null && prev >= 5 && c === 0) return { lvl: 'warn', t: `Consumo cero (el mes pasado fue ${fmt(prev)}). ¿Local cerrado?` };
+  return { lvl: 'ok', t: `Consumo: ${fmt(c)} ${u}` + (prev != null ? ` · mes pasado: ${fmt(prev)}` : '') };
 }
 function parseNum(s) { s = String(s || '').trim().replace(/\s/g, '').replace(',', '.'); if (!s) return null; const n = Number(s); return isNaN(n) ? NaN : n; }
+function isFlag(m) { const r = S.readings[m.id]; if (!r) return false; const c = checkValue(m, r.value); return !r.photo || (c && c.lvl !== 'ok'); }
 
 /* ---------- GPS ---------- */
-function refreshGps() {
-  if (!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(
-    p => { S.gps = { lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy), t: Date.now() }; updGpsLabel(); },
-    () => updGpsLabel(), { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 });
-}
-function gpsFresh() { return S.gps && Date.now() - S.gps.t < 10 * 60 * 1000 ? S.gps : null; }
-function updGpsLabel() {
-  const g = gpsFresh(); const el = $('#shGps'); if (!el) return;
-  el.textContent = g ? `📍 Ubicación: ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)} (±${g.acc} m)` : '📍 Sin ubicación (normal en sótanos; la foto igual lleva fecha y hora)';
-}
+function refreshGps() { if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(p => { S.gps = { lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy), t: Date.now() }; gpsLabel(); },
+    () => gpsLabel(), { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 }); }
+const gpsFresh = () => S.gps && Date.now() - S.gps.t < 10 * 60 * 1000 ? S.gps : null;
+function gpsLabel() { const g = gpsFresh(); $('#cGps').textContent = g ? `📍 ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)} (±${g.acc} m)` : '📍 Sin ubicación (normal en sótanos; la foto igual lleva fecha y hora)'; }
 
-/* ---------- Foto con sello de fecha, hora y datos ---------- */
-function loadImg(url) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; }); }
+/* ---------- Foto con sello ---------- */
+const loadImg = url => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
 async function stampPhoto(file, lines) {
   const url = URL.createObjectURL(file);
   try {
-    const img = await loadImg(url);
-    let w = img.naturalWidth, h = img.naturalHeight; const k = Math.min(1, 1600 / Math.max(w, h));
+    const img = await loadImg(url); let w = img.naturalWidth, h = img.naturalHeight; const k = Math.min(1, 1600 / Math.max(w, h));
     w = Math.round(w * k); h = Math.round(h * k);
-    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-    const g = cv.getContext('2d'); g.drawImage(img, 0, 0, w, h);
-    const fs = Math.max(14, Math.round(Math.min(w, h) / 24)); const lh = fs * 1.28;
-    const boxH = lines.length * lh + fs * 0.9;
-    const grd = g.createLinearGradient(0, h - boxH - fs * 2, 0, h);
-    grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(.35, 'rgba(0,0,0,.45)'); grd.addColorStop(1, 'rgba(0,0,0,.65)');
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const g = cv.getContext('2d'); g.drawImage(img, 0, 0, w, h);
+    const fs = Math.max(14, Math.round(Math.min(w, h) / 24)), lh = fs * 1.28, boxH = lines.length * lh + fs * 0.9;
+    const grd = g.createLinearGradient(0, h - boxH - fs * 2, 0, h); grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(.35, 'rgba(0,0,0,.45)'); grd.addColorStop(1, 'rgba(0,0,0,.65)');
     g.fillStyle = grd; g.fillRect(0, h - boxH - fs * 2, w, boxH + fs * 2);
     g.textAlign = 'right'; g.fillStyle = '#fff'; g.shadowColor = 'rgba(0,0,0,.85)'; g.shadowBlur = fs / 4;
-    lines.forEach((t, i) => {
-      let size = i === 0 ? fs * 1.1 : fs;
-      g.font = `600 ${size}px system-ui, Roboto, sans-serif`;
-      while (g.measureText(t).width > w * 0.94 && size > 10) { size -= 1; g.font = `600 ${size}px system-ui, Roboto, sans-serif`; }
-      g.fillText(t, w - fs * 0.6, h - boxH + fs * 0.35 + lh * (i + 1) - fs * 0.2);
-    });
+    lines.forEach((t, i) => { let size = i === 0 ? fs * 1.1 : fs; g.font = `600 ${size}px system-ui, Roboto, sans-serif`;
+      while (g.measureText(t).width > w * 0.94 && size > 10) { size--; g.font = `600 ${size}px system-ui, Roboto, sans-serif`; }
+      g.fillText(t, w - fs * 0.6, h - boxH + fs * 0.35 + lh * (i + 1) - fs * 0.2); });
     return await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.82));
   } finally { URL.revokeObjectURL(url); }
 }
 
-/* ---------- Pantallas ---------- */
-function allMeters() { return S.meta ? S.meta.sheets.flatMap(s => s.meters) : []; }
-function sheetOf(tipo) { return S.meta.sheets.find(s => s.tipo === tipo); }
-function progress(tipo) { const ms = sheetOf(tipo)?.meters || []; return [ms.filter(m => S.readings[m.id]).length, ms.length]; }
+/* ---------- Pantalla principal ---------- */
+const metersOf = (tipo, group) => S.meta.meters.filter(m => m.tipo === tipo && (group == null || m.group === group));
+const doneCount = list => list.filter(m => S.readings[m.id]).length;
+function curGroup() { const gs = ROUTE[S.tipo].groups; if (!S.group[S.tipo] || !gs.some(g => g.id === S.group[S.tipo])) S.group[S.tipo] = (gs.find(g => doneCount(metersOf(S.tipo, g.id)) < g.items.length) || gs[0]).id; return S.group[S.tipo]; }
 
-function renderSetup() {
-  $('#foot').classList.add('hidden');
-  $('#hdrSub').textContent = 'Agua y gas por local · v' + APP_VERSION;
+function renderHome() {
+  document.body.className = S.tipo;
+  $('#btnMenu').classList.remove('hidden');
+  $('#hdrSub').textContent = `${S.reader || 'Sin nombre'} · ${doneCount(S.meta.meters)} de ${S.meta.meters.length} lecturas`;
+  const gid = curGroup(); const R = ROUTE[S.tipo]; const G = R.groups.find(g => g.id === gid); const list = metersOf(S.tipo, gid);
+  const seg = Object.keys(ROUTE).map(t => { const all = metersOf(t); return `<button class="${t} ${S.tipo === t ? 'on' : ''}" data-t="${t}"><div class="ic">${TIPOS[t].icono}</div><div><div class="nm">${TIPOS[t].nombre.toUpperCase()}</div><div class="pr">${doneCount(all)} de ${all.length}</div></div></button>`; }).join('');
+  const pills = R.groups.map(g => { const ms = metersOf(S.tipo, g.id), d = doneCount(ms), full = d === ms.length;
+    return `<button class="pill ${g.id === gid ? 'on' : ''} ${full ? 'done' : ''}" data-g="${esc(g.id)}"><b>${esc(g.name)}</b><small>${full ? '✓ listo' : d + '/' + ms.length}</small></button>`; }).join('');
+  const d = doneCount(list);
   $('#main').innerHTML = `
-    <div class="card">
-      <h2>1. ¿Quién va a tomar las lecturas?</h2>
-      <input class="t" id="inName" placeholder="Tu nombre" value="${esc(S.reader)}" autocomplete="name">
-      <div class="muted" style="margin-top:6px">Aparece en cada foto.</div>
-    </div>
-    <div class="card">
-      <h2>2. Cargar el reporte de Excel</h2>
-      <div class="muted">El mismo archivo de la empresa, sin cambiarle nada. La app solo escribe las lecturas en sus celdas.</div>
-      <label class="chk"><input type="checkbox" id="inRoll" checked>
-        <span>Es el reporte <b>del mes pasado</b>. Su "lectura actual" pasa a ser la "lectura anterior" de este mes.</span></label>
-      <div style="height:12px"></div>
-      <button class="btn" id="btnLoad">📄 Elegir archivo Excel</button>
-    </div>
-    <div class="card">
-      <h2>¿Te mandaron lecturas de otro teléfono?</h2>
-      <div class="muted">Primero carga el mismo Excel; luego, desde el menú, importa el paquete .zip que te enviaron.</div>
-    </div>`;
-  $('#btnLoad').onclick = () => {
-    S.reader = $('#inName').value.trim();
-    if (!S.reader) { toast('Escribe tu nombre primero'); $('#inName').focus(); return; }
-    DB.put('kv', 'reader', S.reader);
-    $('#fileXlsx').click();
-  };
+    <div class="seg">${seg}</div>
+    <div class="lbl">${R.label}</div>
+    <div class="pills">${pills}</div>
+    <div class="where">📍 <span><b>${esc(R.label)} ${esc(G.name)}</b>${G.where && G.where !== R.label + ' ' + G.name ? ' · ' + esc(G.where) : ''}</span></div>
+    ${d === list.length ? `<div class="groupdone">✅ ${esc(R.label)} ${esc(G.name)} completo</div>` : ''}
+    <div class="lbl">Local · ${d} de ${list.length}</div>
+    <div class="grid">${list.map(m => { const r = S.readings[m.id], fl = isFlag(m);
+      return `<div class="tile ${r ? (fl ? 'flag' : 'done') : ''} ${m.row ? '' : 'manual'}" data-id="${esc(m.id)}"><div class="n">${esc(m.local)}</div><div class="c">${esc(m.comercio || 'Sin comercio')}</div>${r ? `<div class="v">${fl ? '⚠️ ' : '✓ '}${fmt(r.value)}</div>` : ''}</div>`; }).join('')}</div>`;
+  document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { S.tipo = b.dataset.t; renderHome(); });
+  document.querySelectorAll('.pill').forEach(b => b.onclick = () => { S.group[S.tipo] = b.dataset.g; renderHome(); });
+  document.querySelectorAll('.tile').forEach(t => t.onclick = () => openCap(t.dataset.id));
+  const on = document.querySelector('.pill.on'); if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
 }
 
-function renderList() {
-  $('#foot').classList.remove('hidden');
-  const [aD, aT] = progress('agua'); const [gD, gT] = progress('gas');
-  $('#hdrSub').textContent = `${S.meta.fileName} · ${S.reader}`;
-  const tabs = S.meta.sheets.map(s => {
-    const [d, t] = progress(s.tipo);
-    return `<div class="tab ${s.tipo} ${S.tab === s.tipo ? 'on' : ''}" data-tab="${s.tipo}">${TIPOS[s.tipo].nombre}<small>${d} de ${t}</small><div class="bar"><i style="width:${t ? d / t * 100 : 0}%"></i></div></div>`;
-  }).join('');
-  $('#main').innerHTML = `
-    <div class="tabs">${tabs}</div>
-    <div class="search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input class="t" id="q" placeholder="Buscar local, comercio o contador" value="${esc(S.q)}" autocomplete="off" inputmode="search"></div>
-    <div class="chips">
-      <div class="chip ${S.filter === 'pend' ? 'on' : ''}" data-f="pend">Pendientes</div>
-      <div class="chip ${S.filter === 'done' ? 'on' : ''}" data-f="done">Hechos</div>
-      <div class="chip ${S.filter === 'all' ? 'on' : ''}" data-f="all">Todos</div>
-    </div>
-    <div id="list"></div>`;
-  document.querySelectorAll('.tab').forEach(t => t.onclick = () => { S.tab = t.dataset.tab; renderList(); });
-  document.querySelectorAll('.chip').forEach(c => c.onclick = () => { S.filter = c.dataset.f; renderList(); });
-  $('#q').oninput = e => { S.q = e.target.value; renderItems(); };
-  renderItems();
-}
-
-function renderItems() {
-  const sh = sheetOf(S.tab); if (!sh) { $('#list').innerHTML = ''; return; }
-  const q = norm(S.q);
-  const items = sh.meters.filter(m => {
-    const r = S.readings[m.id];
-    if (S.filter === 'pend' && r) return false;
-    if (S.filter === 'done' && !r) return false;
-    if (!q) return true;
-    return [m.local, m.comercio, m.razon, m.contador].some(x => norm(x).includes(q));
-  });
-  if (!items.length) {
-    $('#list').innerHTML = `<div class="empty">${S.filter === 'pend' && !q ? '✅ ¡No quedan medidores pendientes de ' + TIPOS[S.tab].nombre.toLowerCase() + '!' : 'No hay resultados.'}</div>`;
-    return;
-  }
-  $('#list').innerHTML = items.map(m => {
-    const r = S.readings[m.id]; const chk = r ? checkValue(m, r.value) : null;
-    const flag = r && (!r.photo || (chk && chk.lvl !== 'ok'));
-    return `<div class="m ${r ? (flag ? 'flag' : 'done') : ''}" data-id="${m.id}">
-      <div class="loc">${esc(m.local ?? '—')}</div>
-      <div class="info"><div class="com">${esc(m.comercio || m.razon || 'Sin comercio')}</div>
-        <div class="det">${m.contador != null ? 'Contador ' + esc(m.contador) : 'Sin n.º de contador'} · ant. ${fmt(baseOf(m))}</div></div>
-      <div class="st">${r ? `<b>${fmt(r.value)}</b>${r.photo ? '📷' : 'sin foto'}${flag ? ' ⚠️' : ''}` : 'Pendiente'}</div>
-    </div>`;
-  }).join('');
-  document.querySelectorAll('.m').forEach(el => el.onclick = () => openMeter(el.dataset.id));
-}
-
-/* ---------- Tomar lectura ---------- */
-async function openMeter(id) {
-  const m = allMeters().find(x => x.id === id); if (!m) return;
-  S.current = m; S.shot = null;
-  const r = S.readings[id];
-  $('#shTitle').textContent = `${TIPOS[m.tipo].nombre} · Local ${m.local ?? '—'}`;
-  $('#shSub').textContent = m.comercio || m.razon || '';
-  $('#shInfo').innerHTML = `<span>Comercio</span><b>${esc(m.comercio || '—')}</b><span>Razón social</span><div>${esc(m.razon || '—')}</div><span>Contador</span><b>${esc(m.contador ?? '—')}</b><span>Fila Excel</span><div>${m.row}</div>`;
-  const prev = lastConsumption(m);
-  $('#shPrev').innerHTML = `<div>Lectura anterior<br><b>${fmt(baseOf(m))}</b></div><div style="text-align:right">Consumo mes pasado<br><b>${prev != null ? fmt(prev) + ' ' + TIPOS[m.tipo].unidad : '—'}</b></div>`;
-  $('#shHint').textContent = m.tipo === 'agua' ? 'Solo los números del contador (m³ enteros). Las agujas rojas no se anotan.' : 'Escribe el número del contador tal como se anota en el reporte (puede llevar decimales).';
+/* ---------- Captura ---------- */
+async function openCap(id) {
+  const m = S.meta.meters.find(x => x.id === id); if (!m) return;
+  S.cur = m; S.shot = null; const r = S.readings[id]; const R = ROUTE[m.tipo]; const G = R.groups.find(g => g.id === m.group);
+  $('#cBadge').textContent = m.local; $('#cCom').textContent = m.comercio || 'Sin comercio';
+  $('#cSub').textContent = `${TIPOS[m.tipo].nombre} · ${R.label} ${G.name}` + (m.contador != null ? ` · Contador ${m.contador}` : '');
+  const prev = lastCons(m);
+  $('#cPrev').innerHTML = m.row ? `<div>Lectura anterior<b>${fmt(baseOf(m))}</b></div><div>Consumo mes pasado<b>${prev != null ? fmt(prev) : '—'}</b></div>`
+    : `<div style="color:#7a4a00;background:#fff3dc">Este local no tiene fila en el reporte de Excel. La lectura se guarda y te la muestro al exportar para pasarla a mano.</div>`;
+  $('#cUnit').textContent = TIPOS[m.tipo].unidad;
+  $('#cHint').textContent = m.tipo === 'agua' ? 'Solo los números del contador. Las agujas rojas no se anotan.' : 'El número del contador tal como se anota en el reporte (puede llevar decimales).';
   $('#val').value = r ? r.value : ''; $('#note').value = r ? (r.note || '') : '';
-  const img = $('#shPhoto');
-  if (r && r.photo) { const b = await DB.get('photos', id); if (b) { img.src = URL.createObjectURL(b); img.classList.remove('hidden'); } }
-  else { img.classList.add('hidden'); img.removeAttribute('src'); }
-  $('#btnCam').textContent = r && r.photo ? '📷 Repetir foto' : '📷 Tomar foto';
-  $('#btnDel').classList.toggle('hidden', !r);
-  showCheck();
-  $('#sheet').classList.add('open'); $('#sheet').scrollTop = 0;
-  updGpsLabel(); refreshGps();
+  $('#note').classList.toggle('hidden', !(r && r.note)); $('#cNoteBtn').classList.toggle('hidden', !!(r && r.note));
+  await setCamThumb(r && r.photo ? await DB.get('photos', id) : null);
+  $('#cDel').classList.toggle('hidden', !r);
+  showCheck(); gpsLabel(); refreshGps();
+  $('#scrim').classList.add('open'); $('#cap').classList.add('open'); $('#cap').scrollTop = 0;
 }
-function closeSheet() { $('#sheet').classList.remove('open'); S.current = null; S.shot = null; renderList(); }
-function showCheck() {
-  const m = S.current; const v = parseNum($('#val').value); const el = $('#shMsg');
+async function setCamThumb(blob) {
+  const cam = $('#cCam'); cam.querySelectorAll('img,.re').forEach(e => e.remove());
+  cam.classList.toggle('has', !!blob);
+  if (blob) { const i = document.createElement('img'); i.src = URL.createObjectURL(blob); cam.appendChild(i); const s = document.createElement('div'); s.className = 're'; s.textContent = 'Repetir'; cam.appendChild(s); }
+}
+function closeCap() { $('#scrim').classList.remove('open'); $('#cap').classList.remove('open'); S.cur = null; S.shot = null; $('#val').blur(); renderHome(); }
+function showCheck() { const v = parseNum($('#val').value), el = $('#cMsg');
   if (isNaN(v)) { el.className = 'msg show err'; el.textContent = 'Solo números (usa punto para decimales).'; return; }
-  const c = checkValue(m, v);
-  el.className = c ? `msg show ${c.lvl}` : 'msg'; el.textContent = c ? c.t : '';
-}
+  const c = S.cur && S.cur.row ? checkValue(S.cur, v) : null; el.className = c ? `msg show ${c.lvl}` : 'msg'; el.textContent = c ? c.t : ''; }
 $('#val').addEventListener('input', showCheck);
-$('#shClose').onclick = closeSheet;
-$('#btnCam').onclick = () => { $('#cam').value = ''; $('#cam').click(); };
-$('#cam').onchange = e => {
-  const f = e.target.files[0]; if (!f) return;
-  S.shot = { file: f, at: new Date(), gps: gpsFresh() };
-  const img = $('#shPhoto'); img.src = URL.createObjectURL(f); img.classList.remove('hidden');
-  $('#btnCam').textContent = '📷 Repetir foto';
-  setTimeout(() => $('#val').focus(), 300);
-};
-$('#btnSave').onclick = async () => {
-  const m = S.current; const v = parseNum($('#val').value); const note = $('#note').value.trim();
-  const old = S.readings[m.id];
+$('#cClose').onclick = closeCap; $('#scrim').onclick = closeCap;
+$('#cNoteBtn').onclick = () => { $('#cNoteBtn').classList.add('hidden'); $('#note').classList.remove('hidden'); $('#note').focus(); };
+$('#cCam').onclick = () => { $('#cam').value = ''; $('#cam').click(); };
+$('#cam').onchange = e => { const f = e.target.files[0]; if (!f) return; S.shot = { file: f, at: new Date(), gps: gpsFresh() }; setCamThumb(f); setTimeout(() => $('#val').focus(), 250); };
+$('#cSave').onclick = async () => {
+  const m = S.cur, v = parseNum($('#val').value), note = $('#note').value.trim(), old = S.readings[m.id];
   if (v === null) { toast('Escribe la lectura'); $('#val').focus(); return; }
   if (isNaN(v)) { toast('La lectura debe ser un número'); return; }
   const hasPhoto = !!S.shot || !!(old && old.photo);
-  if (!hasPhoto && !note) { toast('Toma la foto, o escribe una nota de por qué no hay foto'); return; }
-  const c = checkValue(m, v);
+  if (!hasPhoto && !note) { toast('Toma la foto, o agrega una nota de por qué no hay'); return; }
+  const c = m.row ? checkValue(m, v) : null;
   if (c && c.lvl !== 'ok' && !(await ask(c.t + '\n\n¿Guardar de todas formas?', 'Sí, guardar', 'Revisar'))) return;
-  $('#btnSave').disabled = true;
+  $('#cSave').disabled = true;
   try {
-    const rec = { value: v, note, reader: S.reader, t: Date.now(), photo: hasPhoto,
-      takenAt: old ? old.takenAt : null, gps: old ? old.gps : null };
-    if (S.shot) {
-      const g = S.shot.gps;
-      const lines = [
-        fechaLarga(S.shot.at),
-        `${TIPOS[m.tipo].etiqueta} · Local ${m.local ?? '—'} · ${m.comercio || m.razon || ''}`,
-        `Contador ${m.contador ?? '—'} · Lectura ${fmt(v)}`,
+    const R = ROUTE[m.tipo], G = R.groups.find(g => g.id === m.group);
+    const rec = { value: v, note, reader: S.reader, t: Date.now(), photo: hasPhoto, takenAt: old ? old.takenAt : null, gps: old ? old.gps : null };
+    if (S.shot) { const g = S.shot.gps;
+      const blob = await stampPhoto(S.shot.file, [ fechaLarga(S.shot.at),
+        `${TIPOS[m.tipo].etiqueta} · ${R.label} ${G.name} · Local ${m.local}`,
+        `${m.comercio || ''}${m.contador != null ? ' · Contador ' + m.contador : ''}`,
+        `Lectura ${fmt(v)} ${TIPOS[m.tipo].unidad.toLowerCase()}`,
         g ? `${g.lat.toFixed(5)}, ${g.lng.toFixed(5)} (±${g.acc} m)` : 'Ubicación no disponible',
-        `Tomada por: ${S.reader}`
-      ];
-      const blob = await stampPhoto(S.shot.file, lines);
-      await DB.put('photos', m.id, blob);
-      rec.takenAt = S.shot.at.getTime(); rec.gps = g;
-    }
+        `Tomada por: ${S.reader}` ].filter(Boolean));
+      await DB.put('photos', m.id, blob); rec.takenAt = S.shot.at.getTime(); rec.gps = g; }
     await DB.put('readings', m.id, rec); S.readings[m.id] = rec;
-    toast(`Guardado: local ${m.local ?? ''} → ${fmt(v)}`);
-    closeSheet();
+    // Siguiente local pendiente del mismo manifold / nivel
+    const list = metersOf(m.tipo, m.group); const i = list.findIndex(x => x.id === m.id);
+    const next = [...list.slice(i + 1), ...list.slice(0, i)].find(x => !S.readings[x.id]);
+    if (next) { toast(`✓ ${m.local} guardado`); renderHome(); openCap(next.id); }
+    else { toast(`✓ ${R.label} ${G.name} completo`, 2600); closeCap(); }
   } catch (err) { console.error(err); toast('No se pudo guardar: ' + err.message, 4000); }
-  finally { $('#btnSave').disabled = false; }
+  finally { $('#cSave').disabled = false; }
 };
-$('#btnDel').onclick = async () => {
-  const m = S.current;
+$('#cDel').onclick = async () => { const m = S.cur;
   if (!(await ask(`¿Borrar la lectura y la foto del local ${m.local}?`, 'Borrar'))) return;
-  await DB.del('readings', m.id); await DB.del('photos', m.id); delete S.readings[m.id];
-  toast('Lectura borrada'); closeSheet();
-};
+  await DB.del('readings', m.id); await DB.del('photos', m.id); delete S.readings[m.id]; toast('Lectura borrada'); closeCap(); };
 
-/* ---------- Exportar ---------- */
-function photoName(m, date, used) {
-  let base = `${isoDay(date)}_${TIPOS[m.tipo].etiqueta}_${safeName(m.local)}_${safeName(m.comercio || m.razon || 'SIN_COMERCIO')}`;
-  let n = base, i = 2; while (used.has(n)) n = `${base}-${i++}`; used.add(n); return n + '.jpg';
-}
-function renderExport() {
-  $('#foot').classList.add('hidden');
-  const today = isoDay(new Date());
-  const pend = allMeters().filter(m => !S.readings[m.id]);
-  const flags = allMeters().filter(m => { const r = S.readings[m.id]; if (!r) return false; const c = checkValue(m, r.value); return !r.photo || (c && c.lvl !== 'ok'); });
-  const stats = S.meta.sheets.map(s => { const [d, t] = progress(s.tipo); return `<div class="stat"><span>${TIPOS[s.tipo].nombre}</span><b>${d} de ${t}</b></div>`; }).join('');
+/* ---------- Inicio (primera vez) ---------- */
+function renderSetup() {
+  document.body.className = ''; $('#btnMenu').classList.add('hidden'); $('#hdrSub').textContent = 'Agua y gas por local · v' + APP_VERSION;
   $('#main').innerHTML = `
-    <button class="btn sec" id="back">‹ Volver a la lista</button><div style="height:12px"></div>
-    <div class="card"><h2>Resumen</h2>${stats}
-      ${pend.length ? `<div class="msg show warn">Faltan ${pend.length} medidores. En el Excel quedarán sin lectura actual${S.meta.rollForward ? ' y su consumo saldrá negativo hasta que se llenen' : ''}.</div>` : '<div class="msg show ok">Todos los medidores tienen lectura.</div>'}
-      ${flags.length ? `<div class="msg show warn">${flags.length} lecturas con alerta o sin foto (marcadas con ⚠️ en la lista).</div>` : ''}
-    </div>
-    <div class="card"><h2>Excel de la empresa</h2>
-      <label class="f" for="dt">Fecha de toma de lecturas</label>
-      <input type="date" class="t" id="dt" value="${today}">
-      <div style="height:12px"></div>
-      <button class="btn" id="exXlsx">📊 Descargar Excel lleno</button>
-    </div>
-    <div class="card"><h2>Fotos de respaldo</h2>
-      <div class="muted">Un .zip con todas las fotos, con nombres como <i>2026-11-27_AGUA_300_GAMBARU.jpg</i>.</div>
-      <div style="height:12px"></div>
-      <button class="btn" id="exFotos">🗂️ Descargar fotos (.zip)</button>
-    </div>
-    <div class="card"><h2>Juntar con otros teléfonos</h2>
-      <div class="muted">Si varias personas tomaron lecturas: cada una envía su paquete a quien arma el Excel, y esa persona lo importa aquí.</div>
-      <div style="height:12px"></div>
-      <div class="row"><button class="btn sec" id="exPkg">📤 Enviar mis lecturas</button><button class="btn sec" id="imPkg">📥 Importar paquete</button></div>
-    </div>
-    <div class="card"><h2>Mes nuevo</h2>
-      <div class="muted">Cuando ya entregaste el Excel y las fotos, carga el reporte nuevo para empezar el siguiente mes. Esto borra las lecturas y fotos guardadas en este teléfono.</div>
-      <div style="height:12px"></div>
-      <button class="btn danger" id="reset">Empezar con otro archivo</button>
-      <div class="muted" style="margin-top:10px">Versión ${APP_VERSION}</div>
-    </div>`;
-  $('#back').onclick = renderList;
-  const getDate = () => { const [y, mo, d] = ($('#dt').value || today).split('-').map(Number); return new Date(y, mo - 1, d); };
-  $('#exXlsx').onclick = async () => {
-    const d = getDate(); toast('Armando el Excel…');
-    try {
-      const blob = await buildExcel(d);
-      await shareOrDownload(blob, `Reporte_de_consumo_de_locales_${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}.xlsx`);
-    } catch (e) { console.error(e); toast('Error al armar el Excel: ' + e.message, 5000); }
-  };
-  $('#exFotos').onclick = async () => {
-    const d = getDate(); const zip = new JSZip(); const used = new Set(); let n = 0;
-    for (const m of allMeters()) {
-      const r = S.readings[m.id]; if (!r || !r.photo) continue;
-      const b = await DB.get('photos', m.id); if (!b) continue;
-      zip.folder(TIPOS[m.tipo].etiqueta).file(photoName(m, r.takenAt ? new Date(r.takenAt) : d, used), b); n++;
-    }
-    if (!n) { toast('Todavía no hay fotos'); return; }
-    toast(`Comprimiendo ${n} fotos…`);
-    const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/zip' });
-    await shareOrDownload(blob, `Fotos_medidores_${isoDay(d)}.zip`);
-  };
-  $('#exPkg').onclick = exportPackage;
-  $('#imPkg').onclick = () => { $('#filePkg').value = ''; $('#filePkg').click(); };
-  $('#reset').onclick = async () => {
-    if (!(await ask('Se borrarán todas las lecturas y fotos de este teléfono.\n¿Ya descargaste el Excel y las fotos?', 'Sí, empezar de nuevo'))) return;
-    await DB.clear('readings'); await DB.clear('photos'); await DB.del('kv', 'meta'); await DB.del('kv', 'file');
-    S.meta = null; S.readings = {}; renderSetup();
-  };
+    <div class="hero"><img src="icon-192.png" alt=""><h2>¡Bienvenido!</h2><div class="muted">Dos pasos y estás listo para la ronda.</div></div>
+    <div class="card"><h2>1. ¿Quién toma las lecturas?</h2>
+      <input class="t" id="inName" placeholder="Tu nombre" value="${esc(S.reader)}" autocomplete="name">
+      <div class="muted" style="margin-top:6px">Aparece en cada foto.</div></div>
+    <div class="card"><h2>2. Cargar el reporte de Excel</h2>
+      <div class="muted">El archivo de la empresa, sin cambiarle nada. La app solo escribe las lecturas en sus celdas.</div>
+      <label class="chk"><input type="checkbox" id="inRoll" checked><span>Es el reporte <b>del mes pasado</b>: su "lectura actual" pasa a ser la "lectura anterior".</span></label>
+      <button class="btn" id="btnLoad">📄 Elegir archivo Excel</button></div>`;
+  $('#btnLoad').onclick = () => { S.reader = $('#inName').value.trim(); if (!S.reader) { toast('Escribe tu nombre primero'); $('#inName').focus(); return; }
+    DB.put('kv', 'reader', S.reader); $('#fileXlsx').click(); };
 }
-
-async function exportPackage() {
-  const zip = new JSZip(); const data = { app: 'lecturas-medidores', version: 1, fileHash: S.meta.fileHash, fileName: S.meta.fileName, from: S.reader, readings: {} };
-  for (const [id, r] of Object.entries(S.readings)) {
-    data.readings[id] = r;
-    if (r.photo) { const b = await DB.get('photos', id); if (b) zip.file('fotos/' + id.replace(':', '_') + '.jpg', b); }
-  }
-  if (!Object.keys(data.readings).length) { toast('No tienes lecturas para enviar'); return; }
-  zip.file('lecturas.json', JSON.stringify(data));
-  const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/zip' });
-  await shareOrDownload(blob, `Lecturas_${safeName(S.reader)}_${isoDay(new Date())}.zip`);
-}
-$('#filePkg').onchange = async e => {
-  const f = e.target.files[0]; if (!f) return;
-  try {
-    const zip = await JSZip.loadAsync(await f.arrayBuffer());
-    const data = JSON.parse(await zip.file('lecturas.json').async('string'));
-    if (data.fileHash !== S.meta.fileHash && !(await ask(`Ese paquete se hizo con otro archivo de Excel (${data.fileName}). Las filas podrían no coincidir.\n¿Importar de todas formas?`, 'Importar'))) return;
-    const ids = new Set(allMeters().map(m => m.id)); let added = 0, skipped = 0;
-    for (const [id, r] of Object.entries(data.readings)) {
-      if (!ids.has(id)) { skipped++; continue; }
-      const mine = S.readings[id];
-      if (mine && mine.t >= r.t) { skipped++; continue; }
-      if (r.photo) { const pf = zip.file('fotos/' + id.replace(':', '_') + '.jpg'); if (pf) await DB.put('photos', id, await pf.async('blob')); else r.photo = false; }
-      await DB.put('readings', id, r); S.readings[id] = r; added++;
-    }
-    await ask(`Paquete de ${data.from || 'otro teléfono'}:\n${added} lecturas importadas${skipped ? `, ${skipped} omitidas (ya tenías una más reciente)` : ''}.`, 'Listo', null);
-    renderExport();
-  } catch (err) { console.error(err); toast('Ese archivo no es un paquete de lecturas válido', 4000); }
-};
-
-/* ---------- Cargar Excel ---------- */
-async function sha(buf) {
-  try { const h = await crypto.subtle.digest('SHA-256', buf); return [...new Uint8Array(h)].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join(''); }
-  catch { return String(buf.byteLength); }
-}
+async function sha(buf) { try { const h = await crypto.subtle.digest('SHA-256', buf); return [...new Uint8Array(h)].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join(''); } catch { return String(buf.byteLength); } }
 $('#fileXlsx').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   try {
     if ($('#inName') && $('#inName').value.trim()) { S.reader = $('#inName').value.trim(); DB.put('kv', 'reader', S.reader); }
-    const buf = await f.arrayBuffer();
-    const parsed = await parseReport(buf);
-    if (!parsed.sheets.length) { await ask('No encontré hojas de AGUA o GAS con las columnas "NUMERO DE LOCAL", "LECTURA ANTERIOR" y "LECTURA ACTUAL". ¿Es el reporte correcto?', 'Entendido', null); return; }
-    const meta = { ...parsed, fileName: f.name, fileHash: await sha(buf), rollForward: $('#inRoll') ? $('#inRoll').checked : true, loadedAt: Date.now() };
-    await DB.put('kv', 'file', buf); await DB.put('kv', 'meta', meta);
-    S.meta = meta; S.tab = meta.sheets[0].tipo; S.filter = 'pend';
-    const resumen = meta.sheets.map(s => `${TIPOS[s.tipo].nombre}: ${s.meters.length} medidores`).join('\n');
-    await ask(`Archivo cargado ✔\n${resumen}\n\n(Las filas ocultas del Excel no se incluyen.)`, 'Empezar', null);
-    renderList();
+    const buf = await f.arrayBuffer(); const sheets = await parseReport(buf);
+    if (!sheets.length) { await ask('No encontré las hojas de AGUA y GAS con las columnas "NUMERO DE LOCAL", "LECTURA ANTERIOR" y "LECTURA ACTUAL". ¿Es el reporte correcto?', 'Entendido', null); return; }
+    const meters = buildMeters(sheets);
+    const meta = { sheets: sheets.map(({ rows, ...s }) => s), meters, fileName: f.name, fileHash: await sha(buf), rollForward: $('#inRoll') ? $('#inRoll').checked : true, loadedAt: Date.now() };
+    await DB.put('kv', 'file', buf); await DB.put('kv', 'meta', meta); S.meta = meta; S.group = {};
+    const res = Object.keys(ROUTE).map(t => { const ms = meters.filter(m => m.tipo === t), sin = ms.filter(m => !m.row).length; return `${TIPOS[t].nombre}: ${ms.length} medidores${sin ? ` (${sin} sin fila en el reporte)` : ''}`; }).join('\n');
+    await ask(`Archivo cargado ✔\n${res}`, '¡Empezar!', null); renderHome();
   } catch (err) { console.error(err); await ask('No pude leer ese archivo: ' + err.message, 'Entendido', null); }
 };
 
-$('#btnExport').onclick = renderExport;
+/* ---------- Menú / exportar ---------- */
+function photoName(m, date, used) { const base = `${isoDay(date)}_${TIPOS[m.tipo].etiqueta}_${safeName(m.local)}_${safeName(m.comercio || 'SIN_COMERCIO')}`; let n = base, i = 2; while (used.has(n)) n = `${base}-${i++}`; used.add(n); return n + '.jpg'; }
+function renderMenu() {
+  closeCap(); document.body.className = ''; $('#btnMenu').classList.add('hidden');
+  const today = isoDay(new Date()), all = S.meta.meters;
+  const pend = all.filter(m => !S.readings[m.id]), flags = all.filter(isFlag), manual = all.filter(m => !m.row && S.readings[m.id]);
+  const stats = Object.keys(ROUTE).map(t => { const ms = metersOf(t); return `<div class="stat"><span>${TIPOS[t].icono} ${TIPOS[t].nombre}</span><b>${doneCount(ms)} de ${ms.length}</b></div>`; }).join('');
+  $('#main').innerHTML = `
+    <button class="btn sec" id="back" style="margin-top:0">‹ Volver a las lecturas</button><div style="height:12px"></div>
+    <div class="card"><h2>Resumen</h2>${stats}
+      ${pend.length ? `<div class="msg show warn">Faltan ${pend.length} medidores. En el Excel quedarán sin lectura actual${S.meta.rollForward ? ' y su consumo saldrá negativo hasta que se llenen' : ''}.</div>` : '<div class="msg show ok">Todos los medidores tienen lectura. 🎉</div>'}
+      ${flags.length ? `<div class="msg show warn">${flags.length} lecturas con alerta o sin foto (⚠️ en la lista).</div>` : ''}
+      ${manual.length ? `<div class="msg show warn"><b>Pasar a mano al Excel</b> (no tienen fila en el reporte):<ul class="list">${manual.map(m => `<li>${TIPOS[m.tipo].nombre} · ${esc(m.local)} ${esc(m.comercio || '')}: <b>${fmt(S.readings[m.id].value)}</b></li>`).join('')}</ul></div>` : ''}
+    </div>
+    <div class="card"><h2>📊 Excel de la empresa</h2>
+      <label class="muted" for="dt">Fecha de toma de lecturas</label>
+      <input type="date" class="t" id="dt" value="${today}" style="margin-top:4px">
+      <button class="btn" id="exXlsx">Descargar Excel lleno</button></div>
+    <div class="card"><h2>🗂️ Fotos de respaldo</h2>
+      <div class="muted">Un .zip con carpetas AGUA y GAS, y nombres como <i>2026-11-27_AGUA_300_GAMBARU.jpg</i>.</div>
+      <button class="btn" id="exFotos">Descargar fotos (.zip)</button></div>
+    <div class="card"><h2>📲 Juntar con otros teléfonos</h2>
+      <div class="muted">Cada persona envía su paquete a quien arma el Excel, y esa persona lo importa aquí.</div>
+      <div class="row"><button class="btn sec" id="exPkg">Enviar mis lecturas</button><button class="btn sec" id="imPkg">Importar paquete</button></div></div>
+    <div class="card"><h2>Mes nuevo</h2>
+      <div class="muted">Cuando ya entregaste el Excel y las fotos, empieza el siguiente mes con el reporte nuevo. Esto borra las lecturas y fotos de este teléfono.</div>
+      <button class="btn danger" id="reset">Empezar con otro archivo</button>
+      <div class="muted" style="margin-top:10px">Archivo: ${esc(S.meta.fileName)} · Versión ${APP_VERSION}</div></div>`;
+  $('#back').onclick = renderHome;
+  const getDate = () => { const [y, mo, d] = ($('#dt').value || today).split('-').map(Number); return new Date(y, mo - 1, d); };
+  $('#exXlsx').onclick = async () => { const d = getDate(); toast('Armando el Excel…');
+    try { await shareOrDownload(await buildExcel(d), `Reporte_de_consumo_de_locales_${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}.xlsx`); }
+    catch (e) { console.error(e); toast('Error al armar el Excel: ' + e.message, 5000); } };
+  $('#exFotos').onclick = async () => { const d = getDate(), zip = new JSZip(), used = new Set(); let n = 0;
+    for (const m of all) { const r = S.readings[m.id]; if (!r || !r.photo) continue; const b = await DB.get('photos', m.id); if (!b) continue;
+      zip.folder(TIPOS[m.tipo].etiqueta).file(photoName(m, r.takenAt ? new Date(r.takenAt) : d, used), b); n++; }
+    if (!n) { toast('Todavía no hay fotos'); return; } toast(`Comprimiendo ${n} fotos…`);
+    await shareOrDownload(await zip.generateAsync({ type: 'blob', mimeType: 'application/zip' }), `Fotos_medidores_${isoDay(d)}.zip`); };
+  $('#exPkg').onclick = exportPackage;
+  $('#imPkg').onclick = () => { $('#filePkg').value = ''; $('#filePkg').click(); };
+  $('#reset').onclick = async () => { if (!(await ask('Se borrarán todas las lecturas y fotos de este teléfono.\n¿Ya descargaste el Excel y las fotos?', 'Sí, empezar de nuevo'))) return;
+    await DB.clear('readings'); await DB.clear('photos'); await DB.del('kv', 'meta'); await DB.del('kv', 'file'); S.meta = null; S.readings = {}; renderSetup(); };
+}
+async function exportPackage() {
+  const zip = new JSZip(), data = { app: 'lecturas-medidores', version: 2, fileHash: S.meta.fileHash, fileName: S.meta.fileName, from: S.reader, readings: {} };
+  for (const [id, r] of Object.entries(S.readings)) { data.readings[id] = r; if (r.photo) { const b = await DB.get('photos', id); if (b) zip.file('fotos/' + encodeURIComponent(id) + '.jpg', b); } }
+  if (!Object.keys(data.readings).length) { toast('No tienes lecturas para enviar'); return; }
+  zip.file('lecturas.json', JSON.stringify(data));
+  await shareOrDownload(await zip.generateAsync({ type: 'blob', mimeType: 'application/zip' }), `Lecturas_${safeName(S.reader)}_${isoDay(new Date())}.zip`);
+}
+$('#filePkg').onchange = async e => { const f = e.target.files[0]; if (!f) return;
+  try {
+    const zip = await JSZip.loadAsync(await f.arrayBuffer()); const data = JSON.parse(await zip.file('lecturas.json').async('string'));
+    if (data.fileHash !== S.meta.fileHash && !(await ask(`Ese paquete se hizo con otro archivo de Excel (${data.fileName}).\n¿Importar de todas formas?`, 'Importar'))) return;
+    const ids = new Set(S.meta.meters.map(m => m.id)); let added = 0, skipped = 0;
+    for (const [id, r] of Object.entries(data.readings)) {
+      if (!ids.has(id) || (S.readings[id] && S.readings[id].t >= r.t)) { skipped++; continue; }
+      if (r.photo) { const pf = zip.file('fotos/' + encodeURIComponent(id) + '.jpg'); if (pf) await DB.put('photos', id, await pf.async('blob')); else r.photo = false; }
+      await DB.put('readings', id, r); S.readings[id] = r; added++;
+    }
+    await ask(`Paquete de ${data.from || 'otro teléfono'}:\n${added} lecturas importadas${skipped ? `, ${skipped} omitidas (ya tenías una igual o más reciente)` : ''}.`, 'Listo', null); renderMenu();
+  } catch (err) { console.error(err); toast('Ese archivo no es un paquete de lecturas válido', 4000); } };
+$('#btnMenu').onclick = renderMenu;
 
-/* ---------- Inicio ---------- */
+/* ---------- Arranque ---------- */
 (async function init() {
   try {
-    await DB.open();
-    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
-    S.reader = (await DB.get('kv', 'reader')) || '';
-    S.meta = await DB.get('kv', 'meta');
-    S.readings = await DB.entries('readings');
-    if (S.meta && S.meta.sheets.length) { S.tab = S.meta.sheets[0].tipo; renderList(); } else renderSetup();
+    await DB.open(); if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+    S.reader = (await DB.get('kv', 'reader')) || ''; S.meta = await DB.get('kv', 'meta'); S.readings = await DB.entries('readings');
+    if (S.meta && S.meta.meters) renderHome(); else renderSetup();
     refreshGps();
   } catch (err) { $('#main').innerHTML = `<div class="card">No se pudo iniciar la app: ${esc(err.message)}</div>`; }
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
