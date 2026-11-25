@@ -92,6 +92,13 @@
   .cam span{font-size:12.5px;font-weight:700;color:var(--sub)}
   .cam img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .cam.has{border-style:solid;border-color:var(--ok)}
+  .camact{position:absolute;left:0;right:0;bottom:0;display:flex;gap:4px;padding:5px;background:linear-gradient(transparent,rgba(0,0,0,.55))}
+  .camact span{flex:1;background:rgba(255,255,255,.92);color:#16202c;border-radius:9px;font-size:12px;font-weight:800;padding:6px 0;text-align:center}
+  .viewer{position:fixed;inset:0;background:#000;z-index:45;display:none;flex-direction:column}
+  .viewer.open{display:flex}
+  .viewer img{flex:1;min-height:0;width:100%;object-fit:contain}
+  .viewer .vb{display:flex;gap:10px;padding:12px 14px calc(14px + env(safe-area-inset-bottom))}
+  .viewer .vb button{flex:1;min-height:52px;border:0;border-radius:14px;font-weight:800;font-size:16px;cursor:pointer}
   .cam .re{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;font-size:11.5px;padding:3px 8px;border-radius:10px;white-space:nowrap}
   .valbox{display:flex;flex-direction:column;justify-content:center}
   .valbox input{width:100%;border:2.5px solid var(--line);border-radius:16px;padding:14px 10px;font-size:32px;font-weight:900;text-align:center;letter-spacing:1px;background:#fff}
@@ -173,6 +180,7 @@
 </div></div>
 <input type="file" id="cam" accept="image/*" capture="environment" class="hidden">
 
+<div class="viewer" id="viewer"><img id="vImg" alt="Foto del medidor"><div class="vb"><button id="vClose" style="background:#2a3442;color:#fff">✕ Cerrar</button><button id="vOtra" style="background:var(--yel);color:#1b1500">📷 Tomar otra</button></div></div>
 <div class="modal" id="modal"><div class="box"><p id="mText"></p><div class="row"><button class="btn sec" id="mNo">Cancelar</button><button class="btn" id="mYes">Aceptar</button></div></div></div>
 <div class="toast" id="toast"></div>
 <input type="file" id="fileXlsx" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
@@ -181,7 +189,7 @@
 <script src="jszip.min.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '0.2.5 (prueba)';
+const APP_VERSION = '0.2.6 (prueba)';
 /* Recorrido tomado de "Toma Medidas de Agua y Gas" (plantilla 18 nov 2026): agua por manifold, gas por nivel. */
 const ROUTE = {"agua": {"label": "Manifold", "groups": [{"id": "1", "name": "1", "where": "Atrás de Antigua Cerveza", "items": [{"local": "PB-5", "comercio": "ANTIGUA CERVEZA"}, {"local": "PB-4", "comercio": "FRIDAS VIDERE"}, {"local": "100", "comercio": "SPA"}, {"local": "201", "comercio": "DE MUSEO"}, {"local": "101", "comercio": "SUEÑA CENTER"}, {"local": "102", "comercio": "MUMUSO"}, {"local": "103", "comercio": "SENTIO"}, {"local": "107", "comercio": "MINISO"}, {"local": "206", "comercio": "MEDICA 10"}, {"local": "105", "comercio": "KASPERIE"}, {"local": "205", "comercio": "THE WOOD PLACE"}, {"local": "300", "comercio": "GAMBARU"}, {"local": "321", "comercio": "ROOF PONG"}, {"local": "204", "comercio": "DE MUSEO"}, {"local": "104", "comercio": "ZONA 57"}, {"local": "PB-3", "comercio": "RESTAURANTE GRACIELA"}, {"local": "K PB-1 / K1-01", "comercio": "GARDEN BOUTIQUE / PASTELERIA CIRO"}]}, {"id": "2", "name": "2", "where": "A un costado de subestación", "items": [{"local": "302", "comercio": null}, {"local": "301", "comercio": "DESPECHO"}, {"local": "211", "comercio": "CLARO"}, {"local": "210", "comercio": "ARENA"}, {"local": "208", "comercio": "CANELLA HOME OFFICE"}, {"local": "113", "comercio": "MANUEL ETC SALON"}, {"local": "108", "comercio": "LA FOCACCERIA"}, {"local": "109", "comercio": null}, {"local": "110", "comercio": "DOMINGA"}, {"local": "111", "comercio": "MANUEL SALON ETC"}, {"local": "112", "comercio": "ICANDY / VILLEDA"}, {"local": "139", "comercio": "GIOSEPO"}, {"local": "212", "comercio": "BANCO INDUSTRIAL"}, {"local": "214", "comercio": null}, {"local": "213", "comercio": "TEVI MEVI"}, {"local": "215", "comercio": "MOMENTUM"}]}, {"id": "3", "name": "3", "where": "Basurero", "items": [{"local": "220", "comercio": null}, {"local": "118", "comercio": "NEW TRENDS SHOP"}, {"local": "115", "comercio": "LEONISA"}, {"local": "217", "comercio": "JAMES BARK"}, {"local": "219", "comercio": "FINAL LAP"}, {"local": "117", "comercio": "CANTEL"}, {"local": "303", "comercio": null}, {"local": "216", "comercio": "ZONA FUTBOL"}, {"local": "114", "comercio": "NAVA WEAR"}]}, {"id": "4", "name": "4", "where": "A un costado de las PEY en PB", "items": [{"local": "K3-01", "comercio": "MAS CAFÉ"}, {"local": "318", "comercio": "SUGOI RAMEN"}, {"local": "134", "comercio": "JOYAS EXCLUSIVAS"}, {"local": "135", "comercio": "SKINPHARMA"}, {"local": "136", "comercio": "DEPOSITO DE BELLEZA"}, {"local": "137", "comercio": "BARON´S"}, {"local": "237", "comercio": "LA ROCALLA"}, {"local": "PB-6", "comercio": "QUINOS PIZZERIA (Bodega 1)"}, {"local": "238", "comercio": "AMBIANCE"}, {"local": "309", "comercio": "HAMBURGUESAS DEL MOLINO"}, {"local": "310", "comercio": null}, {"local": "131", "comercio": null}, {"local": "132", "comercio": "PINK SUGAR"}, {"local": "138", "comercio": "COLOR BOX"}, {"local": "133", "comercio": "ALPI  STORE"}, {"local": "PB-2", "comercio": "QUINOS PIZZERIA"}, {"local": "PB-1", "comercio": "JOSPER"}, {"local": "319", "comercio": null}, {"local": "5to.", "comercio": "OFICINA 5TO. NIVEL"}]}, {"id": "5", "name": "5", "where": "Bodega Mantinsa", "items": [{"local": "221", "comercio": "BAMBINOS"}, {"local": "119", "comercio": "LIMAGE"}, {"local": "222", "comercio": "AYHALA"}, {"local": "121", "comercio": "USA FLEX"}, {"local": "223", "comercio": "ESSENCIA"}, {"local": "224", "comercio": "LERIA"}, {"local": "123", "comercio": "TODOMODA"}, {"local": "225", "comercio": "LEXUS EDITORES"}, {"local": "124", "comercio": "CRUZ VERDE"}, {"local": "226", "comercio": "ORIGYNE"}, {"local": "317", "comercio": "CHURRERIA PORFIRIO"}]}, {"id": "6", "name": "6", "where": "Comedor", "items": [{"local": "126", "comercio": "ISADORA"}, {"local": "B2 QUINOS", "comercio": "QUINOS PIZZERIA (Bodega 2)"}, {"local": "314", "comercio": null}, {"local": "315", "comercio": null}, {"local": "127", "comercio": "TOTTO/TOTTO KIDS"}, {"local": "125 A", "comercio": "BANRURAL"}, {"local": "227 A", "comercio": "BOOM"}, {"local": "227 B", "comercio": "CHEER"}, {"local": "125 B", "comercio": null}, {"local": "227 C", "comercio": "BAC"}, {"local": "125 C", "comercio": "ARISTA"}, {"local": "228", "comercio": "ESE O ESE (SOS)/SENZILL"}, {"local": "229", "comercio": null}, {"local": "128", "comercio": "COFFEE DISTRICT"}, {"local": "313", "comercio": "KOMBI BISTRO"}, {"local": "129", "comercio": null}, {"local": "232", "comercio": "ESTUDIO F"}, {"local": "233", "comercio": "KIPLING"}, {"local": "130", "comercio": null}]}, {"id": "7", "name": "7", "where": "Pasillo de FH", "items": [{"local": "307", "comercio": "PUPUSAS"}, {"local": "308", "comercio": "TAQUERIA LA ESTACION"}, {"local": "304", "comercio": "BUBBLE ICE TEA"}, {"local": "305", "comercio": "LA REFA"}, {"local": "306", "comercio": "DULCE BARILOCHE"}, {"local": "312", "comercio": null}]}, {"id": "otros", "name": "Otros", "where": "Acometidas directas, sin ramal principal (cada una en su propio lugar)", "items": [{"local": "S1-1 Y S1-2", "comercio": "SUPER FRESH"}, {"local": "S2-1", "comercio": "DOGSMART"}, {"local": "S2-2", "comercio": "RETOUCHERIE"}, {"local": "4", "comercio": "FITNESS ONE"}, {"local": "FH001", "comercio": "GIMNASTICA"}, {"local": "311", "comercio": "BBQ BROSS"}]}]}, "gas": {"label": "Nivel", "groups": [{"id": "S1", "name": "S1", "where": "Sótano 1", "items": [{"local": "S1-1 Y S1-2", "comercio": "SUPER FRESH"}]}, {"id": "PB", "name": "PB", "where": "Planta baja", "items": [{"local": "PB-1", "comercio": null}, {"local": "PB-2", "comercio": "QUINOS PIZZERIA"}, {"local": "PB-3", "comercio": "RESTAURANTE GRACIELA"}, {"local": "PB-4", "comercio": "FRIDAS VIDERE"}, {"local": "PB-5", "comercio": null}]}, {"id": "1", "name": "1", "where": "Nivel 1", "items": [{"local": "108", "comercio": "LA FOCACCERIA"}]}, {"id": "2", "name": "2", "where": "Nivel 2", "items": [{"local": "201", "comercio": "DE MUSEO"}, {"local": "227A", "comercio": "BOOM"}]}, {"id": "3", "name": "3", "where": "Nivel 3", "items": [{"local": "300", "comercio": "GAMBARU"}, {"local": "301", "comercio": "DESPECHO"}, {"local": "302", "comercio": null}, {"local": "305", "comercio": "LA REFA"}, {"local": "306", "comercio": "DULCE BARILOCHE"}, {"local": "307", "comercio": "PUPUSAS"}, {"local": "308", "comercio": "TAQUERIA LA ESTACION"}, {"local": "309", "comercio": "HAMBURGUESAS DEL MOLINO"}, {"local": "310", "comercio": null}, {"local": "311", "comercio": "BBQ BROSS"}, {"local": "312", "comercio": null}, {"local": "313", "comercio": "KOMBI BISTRO"}, {"local": "314", "comercio": "CHURRERIA PORFIRIO"}, {"local": "318", "comercio": "SUGOI RAMEN"}, {"local": "319", "comercio": null}, {"local": "321", "comercio": "ROOF PONG"}]}, {"id": "4", "name": "4", "where": "Nivel 4", "items": [{"local": "400", "comercio": "FETNESS ONE"}]}]}};
 const TIPOS = {
@@ -365,7 +373,8 @@ function checkValue(m, v) {
   if (base == null) return null;
   const c = v - base;
   if (prev != null && prev > 0 && c > prev * 3 && c - prev > 5) return { lvl: 'warn', t: `Consumo inusual: ${fmt(c)} ${u} (el mes pasado fue ${fmt(prev)}). Confirma la lectura.` };
-  if (prev != null && prev >= 5 && c === 0) return { lvl: 'warn', t: `Consumo cero (el mes pasado fue ${fmt(prev)}). ¿Local cerrado?` };
+  if (c === 0) return { lvl: 'err', t: `Es la misma lectura del mes pasado (${fmt(base)}): consumo cero. Verifica el número o si el local está cerrado.` };
+  if (prev != null && Math.abs(c - prev) < 1e-9) return { lvl: 'err', t: `Mismo consumo que el mes pasado (${fmt(c)} ${u}). Verifica que la lectura sea correcta.` };
   return { lvl: 'ok', t: `Consumo: ${fmt(c)} ${u}` + (prev != null ? ` · mes pasado: ${fmt(prev)}` : '') };
 }
 function parseNum(s) { s = String(s || '').trim().replace(/\s/g, '').replace(',', '.'); if (!s) return null; const n = Number(s); return isNaN(n) ? NaN : n; }
@@ -447,8 +456,12 @@ async function openCap(id) {
 async function setCamThumb(blob) {
   const cam = $('#cCam'); cam.querySelectorAll('img,.re').forEach(e => e.remove());
   cam.classList.toggle('has', !!blob);
-  if (blob) { const i = document.createElement('img'); i.src = URL.createObjectURL(blob); cam.appendChild(i); const s = document.createElement('div'); s.className = 're'; s.textContent = 'Repetir'; cam.appendChild(s); }
+  cam.querySelectorAll('.camact').forEach(e => e.remove()); S.thumb = blob || null;
+  if (blob) { const i = document.createElement('img'); i.src = URL.createObjectURL(blob); cam.appendChild(i);
+    const a = document.createElement('div'); a.className = 'camact'; a.innerHTML = '<span data-a="ver">👁 Ver</span><span data-a="otra">📷 Otra</span>'; cam.appendChild(a); }
 }
+function openViewer() { if (!S.thumb) return; $('#vImg').src = URL.createObjectURL(S.thumb); $('#viewer').classList.add('open'); }
+function takePhoto() { $('#cam').value = ''; $('#cam').click(); }
 function closeCap() { $('#scrim').classList.remove('open'); $('#cap').classList.remove('open'); S.cur = null; S.shot = null; $('#val').blur(); renderHome(); }
 function showCheck() { const v = parseNum($('#val').value), el = $('#cMsg');
   if (isNaN(v)) { el.className = 'msg show err'; el.textContent = 'Solo números (usa punto para decimales).'; return; }
@@ -456,7 +469,12 @@ function showCheck() { const v = parseNum($('#val').value), el = $('#cMsg');
 $('#val').addEventListener('input', showCheck);
 $('#cClose').onclick = closeCap; $('#scrim').onclick = closeCap;
 $('#cNoteBtn').onclick = () => { $('#cNoteBtn').classList.add('hidden'); $('#note').classList.remove('hidden'); $('#note').focus(); };
-$('#cCam').onclick = () => { $('#cam').value = ''; $('#cam').click(); };
+$('#cCam').onclick = e => { const a = e.target.closest('[data-a]');
+  if (!S.thumb) return takePhoto();
+  if (a && a.dataset.a === 'otra') return takePhoto();
+  openViewer(); };
+$('#vClose').onclick = () => $('#viewer').classList.remove('open');
+$('#vOtra').onclick = () => { $('#viewer').classList.remove('open'); takePhoto(); };
 $('#cam').onchange = e => { const f = e.target.files[0]; if (!f) return; S.shot = { file: f, at: new Date(), gps: gpsFresh() }; setCamThumb(f); setTimeout(() => $('#val').focus(), 250); };
 $('#cSave').onclick = async () => {
   const m = S.cur, v = parseNum($('#val').value), note = $('#note').value.trim(), old = S.readings[m.id];
@@ -523,6 +541,14 @@ $('#fileXlsx').onchange = async e => {
 
 /* ---------- Menú / exportar ---------- */
 function photoName(m, date, used) { const base = `${isoDay(date)}_${TIPOS[m.tipo].etiqueta}_${safeName(m.local)}_${safeName(m.comercio || 'SIN_COMERCIO')}`; let n = base, i = 2; while (used.has(n)) n = `${base}-${i++}`; used.add(n); return n + '.jpg'; }
+function missingList(pend) {
+  let h = '';
+  for (const t of Object.keys(ROUTE)) for (const g of ROUTE[t].groups) {
+    const ms = pend.filter(m => m.tipo === t && m.group === g.id); if (!ms.length) continue;
+    h += `<div style="margin-top:8px"><b>${TIPOS[t].icono} ${TIPOS[t].nombre} · ${esc(ROUTE[t].label)} ${esc(g.name)}</b> (${ms.length})<ul class="list">${ms.map(m => `<li>${esc(m.local)}${m.comercio ? ' · ' + esc(m.comercio) : ''}</li>`).join('')}</ul></div>`;
+  }
+  return h;
+}
 function renderMenu() {
   closeCap(); document.body.className = ''; $('#btnMenu').classList.add('hidden');
   const today = isoDay(new Date()), all = S.meta.meters;
@@ -531,7 +557,7 @@ function renderMenu() {
   $('#main').innerHTML = `
     <button class="btn sec" id="back" style="margin-top:0">‹ Volver a las lecturas</button><div style="height:12px"></div>
     <div class="card"><h2>Resumen</h2>${stats}
-      ${pend.length ? `<div class="msg show warn">Faltan ${pend.length} medidores. En el Excel quedarán sin lectura actual${S.meta.rollForward ? ' y su consumo saldrá negativo hasta que se llenen' : ''}.</div>` : '<div class="msg show ok">Todos los medidores tienen lectura. 🎉</div>'}
+      ${pend.length ? `<div class="msg show warn"><b>Faltan ${pend.length} medidores.</b> En el Excel quedarán sin lectura actual${S.meta.rollForward ? ' y su consumo saldrá negativo hasta que se llenen' : ''}.${missingList(pend)}</div>` : '<div class="msg show ok">Todos los medidores tienen lectura. 🎉</div>'}
       ${flags.length ? `<div class="msg show warn">${flags.length} lecturas con alerta o sin foto (⚠️ en la lista).</div>` : ''}
       ${manual.length ? `<div class="msg show warn"><b>Pasar a mano al Excel</b> (no tienen fila en el reporte):<ul class="list">${manual.map(m => `<li>${TIPOS[m.tipo].nombre} · ${esc(m.local)} ${esc(m.comercio || '')}: <b>${fmt(S.readings[m.id].value)}</b></li>`).join('')}</ul></div>` : ''}
     </div>
