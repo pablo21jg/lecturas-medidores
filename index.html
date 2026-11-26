@@ -374,7 +374,8 @@ function checkValue(m, v) {
   const c = v - base;
   if (prev != null && prev > 0 && c > prev * 3 && c - prev > 5) return { lvl: 'warn', t: `Consumo inusual: ${fmt(c)} ${u} (el mes pasado fue ${fmt(prev)}). Confirma la lectura.` };
   if (c === 0) return { lvl: 'err', t: `Es la misma lectura del mes pasado (${fmt(base)}): consumo cero. Verifica el número o si el local está cerrado.` };
-  if (prev != null && Math.abs(c - prev) < 1e-9) return { lvl: 'err', t: `Mismo consumo que el mes pasado (${fmt(c)} ${u}). Verifica que la lectura sea correcta.` };
+  // Mismo consumo que el mes pasado es normal (sobre todo en agua, que se lee en m³ enteros): solo se avisa, no bloquea ni marca el local.
+  if (prev != null && Math.abs(c - prev) < 1e-9) return { lvl: 'ok', t: `Consumo: ${fmt(c)} ${u} · igual que el mes pasado` };
   return { lvl: 'ok', t: `Consumo: ${fmt(c)} ${u}` + (prev != null ? ` · mes pasado: ${fmt(prev)}` : '') };
 }
 function parseNum(s) { s = String(s || '').trim().replace(/\s/g, '').replace(',', '.'); if (!s) return null; const n = Number(s); return isNaN(n) ? NaN : n; }
